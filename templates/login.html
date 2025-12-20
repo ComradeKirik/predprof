@@ -10,11 +10,11 @@
     {% include 'header_template.html' %}
     <div class="register-container">
         <div class="register-box">
-            <h2>Регистрация</h2>
-            <div> {{ msg }} </div>
-            <form id="registerForm" action="/register" method="POST">
+            <h2>Вход</h2>
+
+            <form id="loginForm" action="/login" method="POST">
                 <div class="input-group">
-                    <label for="username">Введите имя пользователя(до 32 букв)</label>
+                    <label for="username">Имя пользователя</label>
                     <input type="text" id="username" name="username" placeholder="Vasya777" required>
                 </div>
 
@@ -22,16 +22,6 @@
                     <label for="password">Пароль</label>
                     <input type="password" id="password" name="password" placeholder="12345" required>
                 </div>
-
-                <div class="input-group">
-                    <label for="confirm_password">Повторите пароль</label>
-                    <input type="password" id="confirm_password" name="confirm_password" placeholder="12345" required>
-                </div>
-                 <div class="input-group">
-                    <label for="email">Почта</label>
-                    <input type="email" id="email" name="email" placeholder="example@exam.ple" required>
-                </div>
-
                 <div id="error-message" class="error-text"></div>
 
                 <button type="submit" class="btn-continue">Продолжить</button>
