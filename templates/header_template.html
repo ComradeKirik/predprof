@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Example</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="logo">Example</div>
+        <div class="nav-right">
+            <div class="dropdown">
+                <button class="dropbtn">Our Courses <span class="arrow">▼</span></button>
+                <div class="dropdown-content">
+                    <a href="#">Math Olympiad</a>
+                    <a href="#">Physics Prep</a>
+                    <a href="#">Informatics Pro</a>
+                    <a href="#">Linguistics Intro</a>
+                    <a href="#">Biology Advanced</a>
+                </div>
+            </div>
+            <a href="/profile" class="profile-link">
+                <img src="https://via.placeholder.com/40" alt="Profile" class="profile-pic">
+            </a>
+        </div>
+    </header>
+
+    {% block content %}{% endblock %}
+
+
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

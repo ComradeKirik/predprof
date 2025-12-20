@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Example Olimpiad Prep</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    {% include 'header_template.html' %}
+
+    <main>
+        <section class="hero">
+            <div class="hero-overlay">
+                <h1>Example</h1>
+                <p>You can prepare to any Olimpiad with us!</p>
+                <div class="hero-btns">
+                    <button class="btn btn-gold">Register</button>
+                    <button class="btn btn-outline">Log in</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="content-section">
+            <p>We provide the best materials, mock exams, and community support to ensure you reach the podium. Don't leave your success to chance; train with the best mentors in the field.</p>
+            <a href="#" class="btn btn-start">Start preparing</a>
+        </section>
+    </main>
+
+    {% include 'footer_template.html' %}
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

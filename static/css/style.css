@@ -1,0 +1,167 @@
+/* Color Palette: Midnight Blue (#1a2a6c), Gold (#fdbb2d), White (#ffffff) */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f4f4f4;
+    line-height: 1.6;
+}
+
+/* Header - Sticky */
+.navbar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background: #1a2a6c;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 50px;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Dropdown */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropbtn {
+    background: #fdbb2d;
+    color: #1a2a6c;
+    padding: 10px 15px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 5px;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+    z-index: 1;
+    border-radius: 5px;
+}
+
+.dropdown-content a {
+    color: #1a2a6c;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+.dropdown-content a:hover {
+    background-color: #f1f1f1;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* Profile Pic */
+.profile-pic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #fdbb2d;
+    transition: transform 0.3s;
+}
+
+.profile-pic:hover {
+    transform: scale(1.1);
+}
+
+/* Hero Section */
+.hero {
+    height: 80vh;
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+                url('https://images.unsplash.com/photo-1513519245088-0e12902e35ca?auto=format&fit=crop&w=1350&q=80');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white;
+    margin-top: 60px; /* Space for sticky header */
+}
+
+.hero h1 {
+    font-size: 5rem;
+    margin-bottom: 10px;
+}
+
+.hero p {
+    font-size: 1.5rem;
+    margin-bottom: 30px;
+}
+
+/* Buttons */
+.btn {
+    padding: 12px 25px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    border: none;
+    margin: 5px;
+}
+
+.btn-gold { background: #fdbb2d; color: #1a2a6c; }
+.btn-outline { background: transparent; border: 2px solid white; color: white; }
+.btn-start { 
+    background: #1a2a6c; 
+    color: white; 
+    display: inline-block;
+    margin-top: 20px;
+}
+
+/* Content Section */
+.content-section {
+    padding: 80px 20%;
+    text-align: center;
+    background: white;
+}
+
+/* Footer */
+footer {
+    background: #1a2a6c;
+    color: white;
+    padding: 40px 50px;
+    margin-top: 50px;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.contact-corner {
+    text-align: right;
+    font-size: 0.9rem;
+}

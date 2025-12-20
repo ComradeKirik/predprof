@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | Example</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
+</head>
+<body>
+    {% include 'header_template.html' %}
+    <div class="register-container">
+        <div class="register-box">
+            <h2>Create Account</h2>
+            <p>Join the Example Olympiad community</p>
+
+            <form id="registerForm" action="/register" method="POST">
+                <div class="input-group">
+                    <label for="username">Nickname (login)</label>
+                    <input type="text" id="username" name="username" placeholder="Enter nickname" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="••••••••" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="confirm_password">Password again</label>
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="••••••••" required>
+                </div>
+
+                <div id="error-message" class="error-text"></div>
+
+                <button type="submit" class="btn-continue">Continue</button>
+            </form>
+
+            <div class="footer-links">
+                <a href="/">Back to home</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
