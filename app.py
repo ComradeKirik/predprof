@@ -7,7 +7,7 @@ import os
 app = Flask(__name__)
 load_dotenv()
 app.secret_key = os.getenv('SECRET_KEY')
-
+DBoperations.init_db()
 @app.route("/")
 def mainpage():
     return render_template('main.html')
@@ -24,6 +24,7 @@ def login():
             session['loggedin'] = True
             session['id'] = account[0]
             session['username'] = account[1]
+            session['email'] = account[4]
             msg = "Успешный вход!"
         else:
             msg = "Аккаунта не существует или введен некорректный пароль!"
@@ -58,6 +59,10 @@ def register():
             msg = "Успешная регистрация!"
 
     return render_template('register.html', msg=msg)
+
+@app.route("/dashboard")
+def dashboard():
+    return render_template('dashboard.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

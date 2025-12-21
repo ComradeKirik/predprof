@@ -7,6 +7,20 @@ if conn:
 
 cursor = conn.cursor()
 
+def init_db():
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS registered_players 
+(
+player_id SERIAL NOT NULL,
+player_name VARCHAR(32),
+player_score INT DEFAULT 1000,
+player_password VARCHAR(255) NOT NULL,
+email VARCHAR(255) NOT NULL,
+PRIMARY KEY(player_id)
+);
+    """)
+    conn.commit()
+
 def checkUserEmail(email):
     cursor.execute("SELECT * FROM registered_players WHERE email = %s", (email,))
     return cursor.fetchone()
