@@ -1,9 +1,12 @@
-from flask import Flask, blueprints, request, render_template, session
+from flask import Flask, blueprints, request, render_template, session, url_for, redirect
 from hashlib import sha256
 import re
 import DBoperations
+from dotenv import load_dotenv
+import os
 app = Flask(__name__)
-
+load_dotenv()
+app.secret_key = os.getenv('SECRET_KEY')
 
 @app.route("/")
 def mainpage():
@@ -22,10 +25,16 @@ def login():
             session['id'] = account[0]
             session['username'] = account[1]
             msg = "Успешный вход!"
-        if account == None:
+        else:
             msg = "Аккаунта не существует или введен некорректный пароль!"
     return render_template('login.html', msg=msg)
 
+@app.route('/logout')
+def logout():
+    session.pop('loggedin', None)
+    session.pop('id', None)
+    session.pop('username', None)
+    return redirect(url_for('login'))
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
