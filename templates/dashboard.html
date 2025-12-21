@@ -15,7 +15,7 @@
         <aside class="dashboard-sidebar">
             <h3>Добро пожаловать, {{ session.username }}!</h3>
             <nav>
-                <a href="#scores" class="sidebar-link active">Прогресс</a>
+                <a href="#scores" class="sidebar-link">Прогресс</a>
                 <a href="#settings" class="sidebar-link">Аккаунт</a>
             </nav>
         </aside>
@@ -32,17 +32,17 @@
 
             <section id="settings" class="dashboard-card">
                 <h2>Ваш аккаунт</h2>
-                <form action="/update-profile" method="POST" class="settings-form">
-                    <div class="form-group">
-                        <label>Имя пользователя</label>
-                        <p>{{ session.username }}</p>
-                    </div>
-                    <div class="form-group">
-                        <label>Электронная почта</label>
-                        <p>{{ session.email }}</p>
-                    </div>
-                </form>
+                <div class="form-group">
+                    <label>Имя пользователя</label>
+                    <p>{{ session.username }}</p>
+                </div>
+                <div class="form-group">
+                    <label>Электронная почта</label>
+                    <p>{{ session.email }}</p>
+                </div>
+                <a href="{{ url_for('logout') }}"><button class="btn btn-gold">Выйти из аккаунта</button></a>
             </section>
+
 
         </main>
     </div>
