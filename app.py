@@ -35,6 +35,7 @@ def logout():
     session.pop('loggedin', None)
     session.pop('id', None)
     session.pop('username', None)
+    session.pop('email', None)
     return redirect(url_for('login'))
 
 @app.route("/register", methods=["GET", "POST"])

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Olympiad Prep</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.anychart.com/releases/8.11.0/js/anychart-base.min.js"></script>
 </head>
 <body>
 
@@ -23,12 +23,13 @@
         <main class="dashboard-main">
 
             <section id="scores" class="dashboard-card">
-                <h2>Прогресс</h2>
-                <p>Посмотрите на свои результаты в этом месяце</p>
-                <div class="chart-container">
-                    <canvas id="scoreChart"></canvas>
-                </div>
-            </section>
+    <h2>Прогресс</h2>
+    <p>Посмотрите на свои результаты в этом месяце</p>
+    <div class="scoreChart">
+        <!-- Изменить canvas на div для AnyChart -->
+        <div id="scoreChart" style="height: 400px; width: 100%;"></div>
+    </div>
+</section>
 
             <section id="settings" class="dashboard-card">
                 <h2>Ваш аккаунт</h2>
@@ -50,5 +51,6 @@
     {% include 'footer_template.html' %}
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/graphics.js') }}"></script>
 </body>
 </html>
