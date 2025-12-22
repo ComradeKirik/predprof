@@ -30,7 +30,6 @@ PRIMARY KEY(player_id)
 );
     """)
     conn.commit()
-init_db()
 def checkUserEmail(email):
     cursor.execute("SELECT * FROM registered_players WHERE email = %s", (email,))
     return cursor.fetchone()
@@ -55,6 +54,9 @@ def daily_score_backup():
         current_date = datetime.now().date()
         cursor.execute("INSERT INTO score_archive(player_id, date, player_score) VALUES(%s, %s, %s)", (i[0],current_date, i[2]))
     conn.commit()
-daily_score_backup()
-cursor.execute("SELECT * FROM score_archive")
-print(cursor.fetchall())
+
+def takeScoreByDays(player_id: int):
+    current_date = datetime.now().date()
+    cursor.execute("SELECT date, player_score FROM score_archive WHERE player_id = %s AND date + 30 >= %s", \
+                   (player_id, current_date))
+    return cursor.fetchall()

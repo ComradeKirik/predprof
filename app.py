@@ -4,6 +4,7 @@ import re
 import DBoperations
 from dotenv import load_dotenv
 import os
+import json
 app = Flask(__name__)
 load_dotenv()
 app.secret_key = os.getenv('SECRET_KEY')
@@ -61,9 +62,19 @@ def register():
 
     return render_template('register.html', msg=msg)
 
+
 @app.route("/dashboard")
 def dashboard():
-    return render_template('dashboard.html')
+    scores = DBoperations.takeScoreByDays(session['id'])
+    chart_data = []
+    for date, score in scores:
+        chart_data.append([date.strftime("%Y-%m-%d"), score])
+
+    # Преобразуем в JSON строку
+    chart_data_json = json.dumps(chart_data)
+    return render_template('dashboard.html',
+                           chart_data_json=chart_data_json,
+                           username=session.get('username', 'Пользователь'))
 
 if __name__ == '__main__':
     app.run(debug=True)

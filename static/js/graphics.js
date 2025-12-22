@@ -1,32 +1,47 @@
 anychart.onDocumentReady(function () {
+    // Получаем контейнер графика
+    var chartContainer = document.getElementById('scoreChart');
 
-    // create data
-    var data = [
-      ["January", 10000],
-      ["February", 12000],
-      ["March", 18000],
-      ["April", 11000],
-      ["May", 9000]
-    ];
+    // Получаем данные из data-атрибута
+    var chartDataJson = chartContainer.getAttribute('data-chart-data');
 
-    // create a chart
+    // Парсим JSON
+    var data;
+    try {
+        data = JSON.parse(chartDataJson);
+    } catch (e) {
+        alert('Error parsing chart data:', e);
+        data = [];
+    }
+
+    // Если данных нет, показываем заглушку
+    if (!data || data.length === 0) {
+        data = [["Нет данных за последние 30 дней", 0]];
+    }
+
+    // Создаем график
     var chart = anychart.line();
-
-    // create a line series and set the data
     var series = chart.line(data);
 
-    // set the chart title
+    // Настройки графика
     chart.title("Ваши очки по дням");
 
-    // set the titles of the axes
     var xAxis = chart.xAxis();
     xAxis.title("Дата");
+
     var yAxis = chart.yAxis();
     yAxis.title("Очки");
 
-    // set the container id
-    chart.container("scoreChart");
+    // Форматируем даты на оси X
+    chart.xAxis().labels().format('{%value}{dateTimeFormat:dd.MM}');
 
-    // initiate drawing the chart
+    // Дополнительные настройки для лучшего отображения
+    chart.tooltip().format("Дата: {%x}\nОчки: {%value}");
+
+    // Включаем легенду
+    chart.legend().enabled(false);
+
+    // Устанавливаем контейнер и рисуем график
+    chart.container("scoreChart");
     chart.draw();
 });
