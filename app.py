@@ -26,7 +26,7 @@ def login():
             session['id'] = account[0]
             session['username'] = account[1]
             session['email'] = account[4]
-            msg = "Успешный вход!"
+            return redirect(url_for('dashboard'))
         else:
             msg = "Аккаунта не существует или введен некорректный пароль!"
     return render_template('login.html', msg=msg)
@@ -58,23 +58,26 @@ def register():
             msg = "Пожалуйста, заполните все поля!"
         else:
             DBoperations.addNewUser(username, email, password_hash)
-            msg = "Успешная регистрация!"
+            return redirect(url_for('dashboard'))
 
     return render_template('register.html', msg=msg)
 
 
 @app.route("/dashboard")
 def dashboard():
-    scores = DBoperations.takeScoreByDays(session['id'])
-    chart_data = []
-    for date, score in scores:
-        chart_data.append([date.strftime("%Y-%m-%d"), score])
+    try:
+        scores = DBoperations.takeScoreByDays(session['id'])
+        chart_data = []
+        for date, score in scores:
+            chart_data.append([date.strftime("%Y-%m-%d"), score])
 
-    # Преобразуем в JSON строку
-    chart_data_json = json.dumps(chart_data)
-    return render_template('dashboard.html',
-                           chart_data_json=chart_data_json,
-                           username=session.get('username', 'Пользователь'))
+        # Преобразуем в JSON строку
+        chart_data_json = json.dumps(chart_data)
+        return render_template('dashboard.html',
+                               chart_data_json=chart_data_json,
+                               username=session.get('username', 'Пользователь'))
+    except KeyError:
+        return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True)
