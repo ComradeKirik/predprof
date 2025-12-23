@@ -1,19 +1,16 @@
 anychart.onDocumentReady(function () {
     // Получаем контейнер графика
     var chartContainer = document.getElementById('scoreChart');
-
     // Получаем данные из data-атрибута
     var chartDataJson = chartContainer.getAttribute('data-chart-data');
-
     // Парсим JSON
     var data;
     try {
         data = JSON.parse(chartDataJson);
     } catch (e) {
-        alert('Error parsing chart data:', e);
         data = [];
+        alert(e)
     }
-
     // Если данных нет, показываем заглушку
     if (!data || data.length === 0) {
         data = [["Нет данных за последние 30 дней", 0]];

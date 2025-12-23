@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdn.anychart.com/releases/8.11.0/js/anychart-base.min.js"></script>
 </head>
+
 <body>
 
     {% include 'header_template.html' %}
@@ -27,7 +28,10 @@
     <p>Посмотрите на свои результаты в этом месяце</p>
     <div class="scoreChart">
         <!-- Изменить canvas на div для AnyChart -->
-        <div id="scoreChart" style="height: 400px; width: 100%;"></div>
+        <div id="scoreChart"
+                         data-chart-data='{{ chart_data_json|safe }}'
+                         style="height: 400px; width: 100%;">
+                    </div>
     </div>
 </section>
 
@@ -43,13 +47,10 @@
                 </div>
                 <a href="{{ url_for('logout') }}"><button class="btn btn-gold">Выйти из аккаунта</button></a>
             </section>
-
-
         </main>
     </div>
 
     {% include 'footer_template.html' %}
-
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     <script src="{{ url_for('static', filename='js/graphics.js') }}"></script>
 </body>

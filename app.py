@@ -72,9 +72,10 @@ def dashboard():
             chart_data.append([date.strftime("%Y-%m-%d"), score])
 
         # Преобразуем в JSON строку
-        chart_data_json = json.dumps(chart_data)
+        print(chart_data)
+        chart_data = json.dumps(chart_data)
         return render_template('dashboard.html',
-                               chart_data_json=chart_data_json,
+                               chart_data_json=chart_data,
                                username=session.get('username', 'Пользователь'))
     except KeyError:
         return redirect(url_for('login'))
