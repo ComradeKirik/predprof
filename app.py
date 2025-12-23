@@ -66,16 +66,25 @@ def register():
 @app.route("/dashboard")
 def dashboard():
     try:
+        # Таблички
         scores = DBoperations.takeScoreByDays(session['id'])
         chart_data = []
         for date, score in scores:
             chart_data.append([date.strftime("%Y-%m-%d"), score])
 
         # Преобразуем в JSON строку
-        print(chart_data)
         chart_data = json.dumps(chart_data)
+
+        profile_pic_path = f"templates/profile_pics/pic_{session['id']}.jpg"
+        if not os.path.exists(profile_pic_path):
+            print("not exists")
+            profile_pic = "templates/profile_pics/generic_profile_picture.jpg"
+        else:
+            profile_pic = f"profile_pics/pic_{session['id']}.jpg"
+        print(profile_pic)
         return render_template('dashboard.html',
                                chart_data_json=chart_data,
+                               profile_pic=profile_pic,
                                username=session.get('username', 'Пользователь'))
     except KeyError:
         return redirect(url_for('login'))
