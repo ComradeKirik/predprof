@@ -26,6 +26,11 @@ def login():
             session['id'] = account[0]
             session['username'] = account[1]
             session['email'] = account[4]
+            profile_pic_path = f"static/profile_pics/pic_{session['id']}.jpg"
+            if os.path.exists(profile_pic_path):
+                session['profile_pic'] = f"/static/profile_pics/pic_{session['id']}.jpg"
+            else:
+                session['profile_pic'] = "/static/profile_pics/generic_profile_picture.jpg"
             return redirect(url_for('dashboard'))
         else:
             msg = "Аккаунта не существует или введен некорректный пароль!"
@@ -74,13 +79,13 @@ def dashboard():
 
         # Преобразуем в JSON строку
         chart_data = json.dumps(chart_data)
-
-        profile_pic_path = f"templates/profile_pics/pic_{session['id']}.jpg"
+        #Фото профиля
+        profile_pic_path = f"static/profile_pics/pic_{session['id']}.jpg"
         if not os.path.exists(profile_pic_path):
             print("not exists")
-            profile_pic = "templates/profile_pics/generic_profile_picture.jpg"
+            profile_pic = "static/profile_pics/generic_profile_picture.jpg"
         else:
-            profile_pic = f"profile_pics/pic_{session['id']}.jpg"
+            profile_pic = f"static/profile_pics/pic_{session['id']}.jpg"
         print(profile_pic)
         return render_template('dashboard.html',
                                chart_data_json=chart_data,
@@ -88,6 +93,21 @@ def dashboard():
                                username=session.get('username', 'Пользователь'))
     except KeyError:
         return redirect(url_for('login'))
+
+@app.context_processor
+def inject_user_data():
+    if 'loggedin' in session and session['loggedin']:
+        return dict(
+            loggedin=True,
+            username=session.get('username'),
+            profile_pic=session.get('profile_pic', '/static/profile_pics/generic_profile_picture.jpg'),
+            user_id=session.get('id')
+        )
+    return dict(
+        loggedin=False,
+        profile_pic="/static/profile_pics/generic_profile_picture.jpg",
+        username=None
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)

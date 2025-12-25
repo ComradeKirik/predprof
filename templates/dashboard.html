@@ -35,7 +35,10 @@
     </div>
 </section>
 
-            <section id="settings" class="dashboard-card">
+            <section class="dashboard-card">
+                <table>
+                <tr>
+                    <td>
                 <h2>Ваш аккаунт</h2>
                 <div class="form-group">
                     <label>Имя пользователя</label>
@@ -49,8 +52,12 @@
                     <label>Фото профиля</label>
                     <p><img src="{{ profile_pic }}"></p>
                 </div>
-                <a href="{{ url_for('logout') }}"><button class="btn btn-gold">Выйти из аккаунта</button></a>
+                        <a href="{{ url_for('logout') }}"><button class="btn btn-gold">Выйти из аккаунта</button></a><button class="btn btn-gold" id="change_pic">Сменить аватарку</button>
+                    </td>
+                </tr>
+                </table>
             </section>
+
         </main>
     </div>
 
