@@ -8,7 +8,6 @@ import json
 from pathlib import Path
 from werkzeug.utils import secure_filename
 
-
 ALLOWED_EXTENSIONS_FOR_PICS = {'png', 'jpg', 'jpeg'}
 BASE_DIR = Path(__file__).parent
 UPLOAD_FOLDER = BASE_DIR / 'static' / 'profile_pics'
@@ -18,9 +17,12 @@ app.secret_key = os.getenv('SECRET_KEY')
 DBoperations.init_db()
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+
+
 @app.route("/")
 def mainpage():
     return render_template('main.html')
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -45,6 +47,7 @@ def login():
             msg = "Аккаунта не существует или введен некорректный пароль!"
     return render_template('login.html', msg=msg)
 
+
 @app.route('/logout')
 def logout():
     session.pop('loggedin', None)
@@ -52,6 +55,7 @@ def logout():
     session.pop('username', None)
     session.pop('email', None)
     return redirect(url_for('login'))
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -81,14 +85,14 @@ def register():
 def dashboard():
     try:
         # Таблички
-        scores = DBoperations.takeScoreByDays(session['id'])
+        scores = DBoperations.takeScorebyDays(session['id'])
         chart_data = []
         for date, score in scores:
             chart_data.append([date.strftime("%Y-%m-%d"), score])
 
         # Преобразуем в JSON строку
         chart_data = json.dumps(chart_data)
-        #Фото профиля
+        # Фото профиля
         profile_pic_path = f"static/profile_pics/pic_{session['id']}.jpg"
         if not os.path.exists(profile_pic_path):
             print("not exists")
@@ -102,6 +106,7 @@ def dashboard():
                                username=session.get('username', 'Пользователь'))
     except KeyError:
         return redirect(url_for('login'))
+
 
 @app.context_processor
 def inject_user_data():
@@ -118,9 +123,10 @@ def inject_user_data():
         username=None
     )
 
+
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_FOR_PICS
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_FOR_PICS
 
 
 @app.route('/upload_avatar', methods=['POST'])
@@ -158,6 +164,7 @@ def upload_avatar():
         print(f"Ошибка загрузки аватара: {e}")
         flash('Произошла ошибка при загрузке файла')
         return redirect(url_for('dashboard'))
+
 
 if __name__ == '__main__':
     app.run(debug=True)
