@@ -20,15 +20,19 @@
                     <a href="#">Biology Advanced</a>
                 </div>
             </div>
-            <a href="/profile" class="profile-link">
-                <img src="https://via.placeholder.com/40" alt="Profile" class="profile-pic">
-            </a>
+            {% if loggedin %}
+                <a href="{{ url_for('dashboard') }}">
+                    <img src="{{ profile_pic }}" alt="Profile" class="profile-pic">
+                </a>
+            {% else %}
+                <a href="{{ url_for('login') }}">
+                    <img src="{{ profile_pic }}" alt="Profile" class="profile-pic">
+                </a>
+            {% endif %}
         </div>
     </header>
 
     {% block content %}{% endblock %}
-
-
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
