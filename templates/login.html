@@ -12,6 +12,7 @@
         <div class="register-box">
             <h2>Вход</h2>
             <div>{{ msg }}</div>
+
             <form id="loginForm" action="/login" method="POST">
                 <div class="input-group">
                     <label for="username">Имя пользователя</label>
@@ -30,7 +31,9 @@
             <div class="footer-links">
                 <a href="/">Вернуться</a>
             </div>
+            <h4>Нет аккаунта? <a href="{{ url_for('register') }}">Зарегистрироваться</a></h4>
         </div>
+
     </div>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>

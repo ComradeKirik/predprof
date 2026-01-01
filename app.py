@@ -1,13 +1,23 @@
-from flask import Flask, blueprints, request, render_template, session, url_for, redirect
+from flask import Flask, blueprints, request, render_template, session, url_for, redirect, flash
 from hashlib import sha256
 import re
 import DBoperations
 from dotenv import load_dotenv
 import os
+import json
+from pathlib import Path
+from werkzeug.utils import secure_filename
+
+
+ALLOWED_EXTENSIONS_FOR_PICS = {'png', 'jpg', 'jpeg'}
+BASE_DIR = Path(__file__).parent
+UPLOAD_FOLDER = BASE_DIR / 'static' / 'profile_pics'
 app = Flask(__name__)
 load_dotenv()
 app.secret_key = os.getenv('SECRET_KEY')
 DBoperations.init_db()
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 @app.route("/")
 def mainpage():
     return render_template('main.html')
@@ -25,7 +35,12 @@ def login():
             session['id'] = account[0]
             session['username'] = account[1]
             session['email'] = account[4]
-            msg = "Успешный вход!"
+            profile_pic_path = f"static/profile_pics/pic_{session['id']}.jpg"
+            if os.path.exists(profile_pic_path):
+                session['profile_pic'] = f"/static/profile_pics/pic_{session['id']}.jpg"
+            else:
+                session['profile_pic'] = "/static/profile_pics/generic_profile_picture.jpg"
+            return redirect(url_for('dashboard'))
         else:
             msg = "Аккаунта не существует или введен некорректный пароль!"
     return render_template('login.html', msg=msg)
@@ -35,6 +50,7 @@ def logout():
     session.pop('loggedin', None)
     session.pop('id', None)
     session.pop('username', None)
+    session.pop('email', None)
     return redirect(url_for('login'))
 
 @app.route("/register", methods=["GET", "POST"])
@@ -56,13 +72,92 @@ def register():
             msg = "Пожалуйста, заполните все поля!"
         else:
             DBoperations.addNewUser(username, email, password_hash)
-            msg = "Успешная регистрация!"
+            return redirect(url_for('dashboard'))
 
     return render_template('register.html', msg=msg)
 
+
 @app.route("/dashboard")
 def dashboard():
-    return render_template('dashboard.html')
+    try:
+        # Таблички
+        scores = DBoperations.takeScoreByDays(session['id'])
+        chart_data = []
+        for date, score in scores:
+            chart_data.append([date.strftime("%Y-%m-%d"), score])
+
+        # Преобразуем в JSON строку
+        chart_data = json.dumps(chart_data)
+        #Фото профиля
+        profile_pic_path = f"static/profile_pics/pic_{session['id']}.jpg"
+        if not os.path.exists(profile_pic_path):
+            print("not exists")
+            profile_pic = "static/profile_pics/generic_profile_picture.jpg"
+        else:
+            profile_pic = f"static/profile_pics/pic_{session['id']}.jpg"
+        print(profile_pic)
+        return render_template('dashboard.html',
+                               chart_data_json=chart_data,
+                               profile_pic=profile_pic,
+                               username=session.get('username', 'Пользователь'))
+    except KeyError:
+        return redirect(url_for('login'))
+
+@app.context_processor
+def inject_user_data():
+    if 'loggedin' in session and session['loggedin']:
+        return dict(
+            loggedin=True,
+            username=session.get('username'),
+            profile_pic=session.get('profile_pic', '/static/profile_pics/generic_profile_picture.jpg'),
+            user_id=session.get('id')
+        )
+    return dict(
+        loggedin=False,
+        profile_pic="/static/profile_pics/generic_profile_picture.jpg",
+        username=None
+    )
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_FOR_PICS
+
+
+@app.route('/upload_avatar', methods=['POST'])
+def upload_avatar():
+    print("func")
+    try:
+        user_id = session['id']
+
+        if 'file' not in request.files:
+            flash('Не могу прочитать файл')
+            return redirect(url_for('dashboard'))
+
+        file = request.files['file']
+        if file.filename == '':
+            flash('Нет выбранного файла')
+            return redirect(url_for('dashboard'))
+
+        if file and allowed_file(file.filename):
+            if not os.path.exists(UPLOAD_FOLDER):
+                os.makedirs(UPLOAD_FOLDER)
+
+            print("There is no mistakes")
+            filename = f"pic_{user_id}.jpg"
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+
+            file.save(filepath)
+            flash('Аватар успешно обновлен!')
+
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Недопустимый формат файла. Разрешены: png, jpg, jpeg, gif')
+            return redirect(url_for('dashboard'))
+
+    except Exception as e:
+        print(f"Ошибка загрузки аватара: {e}")
+        flash('Произошла ошибка при загрузке файла')
+        return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
     app.run(debug=True)

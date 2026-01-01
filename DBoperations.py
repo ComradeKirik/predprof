@@ -1,6 +1,6 @@
 import psycopg2
 from psycopg2.extras import DictCursor
-
+from datetime import datetime
 conn = psycopg2.connect(host="localhost", user="postgres", password="TK", port=5432, dbname="players")
 if conn:
     print("Connected")
@@ -19,8 +19,17 @@ email VARCHAR(255) NOT NULL,
 PRIMARY KEY(player_id)
 );
     """)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS score_archive
+(
+    id SERIAL PRIMARY KEY,
+    player_id INT NOT NULL,
+    date DATE NOT NULL,
+    player_score INT NOT NULL,
+    UNIQUE(player_id, date)
+);
+    """)
     conn.commit()
-
 def checkUserEmail(email):
     cursor.execute("SELECT * FROM registered_players WHERE email = %s", (email,))
     return cursor.fetchone()
@@ -38,3 +47,16 @@ def loginUser(username, password_hash):
     cursor.execute("SELECT * FROM registered_players WHERE player_name = %s AND player_password = %s", \
                    (username, password_hash))
     return cursor.fetchone()
+
+def daily_score_backup():
+    cursor.execute("SELECT * FROM registered_players")
+    for i in cursor.fetchall():
+        current_date = datetime.now().date()
+        cursor.execute("INSERT INTO score_archive(player_id, date, player_score) VALUES(%s, %s, %s)", (i[0],current_date, i[2]))
+    conn.commit()
+
+def takeScoreByDays(player_id: int):
+    current_date = datetime.now().date()
+    cursor.execute("SELECT date, player_score FROM score_archive WHERE player_id = %s AND date + 30 >= %s", \
+                   (player_id, current_date))
+    return cursor.fetchall()
