@@ -114,7 +114,7 @@ def inject_user_data():
         return dict(
             loggedin=True,
             username=session.get('username'),
-            profile_pic=session.get('profile_pic', '/static/profile_pics/generic_profile_picture.jpg'),
+            profile_pic=session.get('profile_pic', f'/static/profile_pics/{session["id"]}.jpg'),
             user_id=session.get('id')
         )
     return dict(
