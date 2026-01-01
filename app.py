@@ -1,14 +1,23 @@
-from flask import Flask, blueprints, request, render_template, session, url_for, redirect
+from flask import Flask, blueprints, request, render_template, session, url_for, redirect, flash
 from hashlib import sha256
 import re
 import DBoperations
 from dotenv import load_dotenv
 import os
 import json
+from pathlib import Path
+from werkzeug.utils import secure_filename
+
+
+ALLOWED_EXTENSIONS_FOR_PICS = {'png', 'jpg', 'jpeg'}
+BASE_DIR = Path(__file__).parent
+UPLOAD_FOLDER = BASE_DIR / 'static' / 'profile_pics'
 app = Flask(__name__)
 load_dotenv()
 app.secret_key = os.getenv('SECRET_KEY')
 DBoperations.init_db()
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 @app.route("/")
 def mainpage():
     return render_template('main.html')
@@ -108,6 +117,47 @@ def inject_user_data():
         profile_pic="/static/profile_pics/generic_profile_picture.jpg",
         username=None
     )
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_FOR_PICS
+
+
+@app.route('/upload_avatar', methods=['POST'])
+def upload_avatar():
+    print("func")
+    try:
+        user_id = session['id']
+
+        if 'file' not in request.files:
+            flash('Не могу прочитать файл')
+            return redirect(url_for('dashboard'))
+
+        file = request.files['file']
+        if file.filename == '':
+            flash('Нет выбранного файла')
+            return redirect(url_for('dashboard'))
+
+        if file and allowed_file(file.filename):
+            if not os.path.exists(UPLOAD_FOLDER):
+                os.makedirs(UPLOAD_FOLDER)
+
+            print("There is no mistakes")
+            filename = f"pic_{user_id}.jpg"
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+
+            file.save(filepath)
+            flash('Аватар успешно обновлен!')
+
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Недопустимый формат файла. Разрешены: png, jpg, jpeg, gif')
+            return redirect(url_for('dashboard'))
+
+    except Exception as e:
+        print(f"Ошибка загрузки аватара: {e}")
+        flash('Произошла ошибка при загрузке файла')
+        return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
     app.run(debug=True)
