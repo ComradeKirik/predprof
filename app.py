@@ -37,6 +37,7 @@ def login():
             session['id'] = account[0]
             session['username'] = account[1]
             session['email'] = account[4]
+            session['adm'] = DBoperations.isAdmin(account[0])
             profile_pic_path = f"static/profile_pics/pic_{session['id']}.jpg"
             if os.path.exists(profile_pic_path):
                 session['profile_pic'] = f"/static/profile_pics/pic_{session['id']}.jpg"
@@ -165,6 +166,9 @@ def upload_avatar():
         flash('Произошла ошибка при загрузке файла')
         return redirect(url_for('dashboard'))
 
+@app.route('/admin_panel', methods=['GET', 'POST'])
+def admin_panel():
+    return render_template('admin_panel.html')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0", port=5000)

@@ -40,6 +40,9 @@
             <nav>
                 <a href="#scores" class="sidebar-link">Прогресс</a>
                 <a href="#settings" class="sidebar-link">Аккаунт</a>
+                {% if session.adm %}
+                    <a href="{{ url_for('admin_panel') }}", class="sidebar-link">Панель администратора</a>
+                {% endif %}
             </nav>
         </aside>
 
