@@ -31,6 +31,23 @@ PRIMARY KEY(player_id)
     UNIQUE(player_id, date)
 );
     """)
+    cursor.execute("""
+    id SERIAL INT PRIMARY KEY,
+    year DATE,
+    olympiad TEXT,
+    difficulty INT,
+    grade INT,
+    answer TEXT,
+    stage INT,
+    UNIQUE(id)
+    """)
+    cursor.execute("""
+    id SERIAL PRIMARY KEY,
+    task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL,
+    solved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(task_id, user_id)
+    """)
     conn.commit()
 
 
