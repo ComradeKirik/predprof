@@ -32,6 +32,7 @@ PRIMARY KEY(player_id)
 );
     """)
     cursor.execute("""
+    CREATE TABLE IF NOT EXISTS tasks(
     id SERIAL INT PRIMARY KEY,
     year DATE,
     olympiad TEXT,
@@ -39,14 +40,24 @@ PRIMARY KEY(player_id)
     grade INT,
     answer TEXT,
     stage INT,
+    subject TEXT,
     UNIQUE(id)
+    );
     """)
     cursor.execute("""
+    CREATE TABLE IF NOT EXISTS solvedTasks(
     id SERIAL PRIMARY KEY,
     task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
     user_id INTEGER NOT NULL,
     solved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(task_id, user_id)
+    );
+    """)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS admins(
+    user_id INT PRIMARY KEY,
+    can_add_admins BOOLEAN DEFAULT FALSE
+    );
     """)
     conn.commit()
 
