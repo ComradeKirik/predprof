@@ -10,6 +10,7 @@ cursor = conn.cursor()
 
 
 def init_db():
+
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS registered_players 
 (
@@ -33,7 +34,7 @@ PRIMARY KEY(player_id)
     """)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS tasks(
-    id SERIAL INT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     year DATE,
     olympiad TEXT,
     difficulty INT,
@@ -99,3 +100,11 @@ def takeScorebyDays(player_id: int):
     cursor.execute("SELECT date, player_score FROM score_archive WHERE player_id = %s AND date + 30 >= %s", \
                    (player_id, current_date))
     return cursor.fetchall()
+
+def isAdmin(player_id: int):
+    cursor.execute("SELECT * FROM admins WHERE user_id = %s", (player_id, ))
+    return cursor.fetchone()
+
+def addAdmin(player_id):
+    cursor.execute("INSERT INTO admins(user_id) VALUES (%s)", (player_id, ))
+    conn.commit()
