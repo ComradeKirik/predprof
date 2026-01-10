@@ -84,8 +84,8 @@ def addNewUser(username, email, password_hash):
 def loginUser(username, password):
     #cursor.execute("SELECT * FROM registered_players WHERE player_name = %s AND player_password = %s", \
      #              (username, password_hash))
-    cursor.execute("SELECT * FROM registered_players WHERE player_name = %s", \
-                   (username))
+    print(username)
+    cursor.execute("SELECT * FROM registered_players WHERE player_name = %s", (username,))
     user = cursor.fetchone()
     if user:
         print(user)
