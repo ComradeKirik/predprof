@@ -106,7 +106,8 @@ def dashboard():
         return render_template('dashboard.html',
                                chart_data_json=chart_data,
                                profile_pic=profile_pic,
-                               username=session.get('username', 'Пользователь'))
+                               username=session.get('username', 'Пользователь'),
+                               tasklist=DBoperations.getTasks())
     except KeyError:
         return redirect(url_for('login'))
 

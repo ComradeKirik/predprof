@@ -41,7 +41,7 @@
                 <a href="#scores" class="sidebar-link">Прогресс</a>
                 <a href="#settings" class="sidebar-link">Аккаунт</a>
                 {% if session.adm %}
-                    <a href="{{ url_for('admin_panel') }}", class="sidebar-link">Панель администратора</a>
+                    <a href="#tasks", class="sidebar-link">Банк заданий</a>
                 {% endif %}
             </nav>
         </aside>
@@ -85,7 +85,14 @@
                     </tr>
                 </table>
             </section>
-
+            {% if session.adm %}
+            <section class="dashboard-card">
+                <h2>Банк заданий</h2><br>
+                    {% for task in tasklist %}
+                        {{ task[5] }}<br>
+                    {% endfor %}
+            </section>
+            {% endif %}
         </main>
     </div>
 

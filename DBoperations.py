@@ -36,14 +36,18 @@ PRIMARY KEY(player_id)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS tasks(
     id SERIAL PRIMARY KEY,
-    year DATE,
-    olympiad TEXT,
-    difficulty INT,
-    grade INT,
-    answer TEXT,
-    stage INT,
-    subject TEXT,
-    UNIQUE(id)
+    created DATE NOT NULL DEFAULT CURRENT_DATE,
+    user_created INT,
+    updated DATE NOT NULL DEFAULT CURRENT_DATE,
+    user_updated INT,
+    tags TEXT,
+    task TEXT,
+    CONSTRAINT fk_user_created
+        FOREIGN KEY (user_created) 
+        REFERENCES registered_players (player_id),
+    CONSTRAINT fk_user_updated
+        FOREIGN KEY (user_updated) 
+        REFERENCES registered_players (player_id)
     );
     """)
     cursor.execute("""
@@ -59,7 +63,26 @@ PRIMARY KEY(player_id)
     cursor.execute("SELECT * FROM registered_players")
     if not cursor.fetchone():
         cursor.execute("INSERT INTO registered_players(player_name, player_password, email, is_admin) VALUES('admin', '$2b$12$wXK7021vkTPZBD10hDe8S.zn07MLXXLnqOgSElkTtSGgzr.Ac9lGm', 'admin@example.com', true)")
+        cursor.execute("INSERT INTO registered_players(player_name, player_password, email, is_admin) VALUES('player', '$2b$12$wXK7021vkTPZBD10hDe8S.zn07MLXXLnqOgSElkTtSGgzr.Ac9lGm', 'admin@example.com', false)")
         conn.commit()
+    cursor.execute("SELECT * FROM tasks")
+    if not cursor.fetchone():
+        cursor.execute("INSERT INTO tasks(user_created, user_updated, tags, task) VALUES (1, 1, 'Математика', '{name:\"47F947\", desc:\"В треугольнике ABC...\", hint:\"Впишите ответ\", answer:\"14,5\"}')")
+        cursor.execute("INSERT INTO tasks(user_created, user_updated, tags, task) VALUES (1, 1, 'Физика', '{name:\"47F947\", desc:\"В треугольнике ABC...\", hint:\"Впишите ответ\", answer:\"14,5\"}')")
+        conn.commit()
+        """id SERIAL PRIMARY KEY,
+    created DATE,
+    user_created INT,
+    updated DATE,
+    user_updated INT,
+    tags TEXT,
+    task TEXT,
+    CONSTRAINT fk_user_created
+        FOREIGN KEY (user_created) 
+        REFERENCES registered_players (player_id),
+    CONSTRAINT fk_user_updated
+        FOREIGN KEY (user_updated) 
+        REFERENCES registered_players (player_id)"""
 
 
 
@@ -117,3 +140,7 @@ def isAdmin(player_id: int):
 def addAdmin(player_id):
     cursor.execute("INSERT INTO admins(user_id) VALUES (%s)", (player_id, ))
     conn.commit()
+
+def getTasks():
+    cursor.execute("SELECT * FROM tasks")
+    return cursor.fetchall()
