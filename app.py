@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 import os
 import json
 from pathlib import Path
-from werkzeug.utils import secure_filename
 
 ALLOWED_EXTENSIONS_FOR_PICS = {'png', 'jpg', 'jpeg'}
 BASE_DIR = Path(__file__).parent
