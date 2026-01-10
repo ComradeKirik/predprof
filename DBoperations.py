@@ -19,6 +19,7 @@ player_name VARCHAR(32),
 player_score INT DEFAULT 1000,
 player_password VARCHAR(255) NOT NULL,
 email VARCHAR(255) NOT NULL,
+is_admin BOOLEAN DEFAULT FALSE,
 PRIMARY KEY(player_id)
 );
     """)
@@ -54,13 +55,12 @@ PRIMARY KEY(player_id)
     UNIQUE(task_id, user_id)
     );
     """)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS admins(
-    user_id INT PRIMARY KEY,
-    can_add_admins BOOLEAN DEFAULT FALSE
-    );
-    """)
     conn.commit()
+    cursor.execute("SELECT * FROM registered_players")
+    if not cursor.fetchone():
+        cursor.execute("INSERT INTO registered_players(player_name, player_password, email, is_admin) VALUES('admin', '$2b$12$wXK7021vkTPZBD10hDe8S.zn07MLXXLnqOgSElkTtSGgzr.Ac9lGm', 'admin@example.com', true)")
+        conn.commit()
+
 
 
 def checkUserEmail(email):
@@ -111,7 +111,7 @@ def takeScorebyDays(player_id: int):
     return cursor.fetchall()
 
 def isAdmin(player_id: int):
-    cursor.execute("SELECT * FROM admins WHERE user_id = %s", (player_id, ))
+    cursor.execute("SELECT * FROM registered_players WHERE player_id = %s AND is_admin = true", (player_id, ))
     return cursor.fetchone()
 
 def addAdmin(player_id):
