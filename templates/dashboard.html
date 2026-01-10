@@ -1,103 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Olympiad Prep</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="https://cdn.anychart.com/releases/8.11.0/js/anychart-base.min.js"></script>
-</head>
+{% include 'header_lk_template.html' %}
+<script src="https://cdn.anychart.com/releases/8.14.0/js/anychart-base.min.js" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/graphics.js') }}"></script>
 
-<body>
-
-    {% include 'header_template.html' %}
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <div class="flash-messages" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
-      {% for message in messages %}
-        <div class="flash-message" style="background: #4CAF50; color: white; padding: 10px 20px; margin: 5px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-          {{ message }}
+<section id="scores" class="dashboard-card">
+    <h2>Прогресс</h2>
+    <p>Посмотрите на свои результаты в этом месяце</p>
+    <div class="scoreChart">
+        <div id="scoreChart"
+             data-chart-data='{{ chart_data_json|safe }}'
+             style="height: 400px; width: 100%;">
         </div>
-      {% endfor %}
     </div>
-    <script>
-      setTimeout(function() {
-        var messages = document.querySelectorAll('.flash-message');
-        messages.forEach(function(msg) {
-          msg.style.opacity = '0';
-          msg.style.transition = 'opacity 0.5s';
-          setTimeout(function() {
-            msg.parentNode.removeChild(msg);
-          }, 500);
-        });
-      }, 3000);
-    </script>
-  {% endif %}
-{% endwith %}
-    <div class="dashboard-container">
-        <aside class="dashboard-sidebar">
-            <h3>Добро пожаловать, {{ session.username }}!</h3>
-            <nav>
-                <a href="#scores" class="sidebar-link">Прогресс</a>
-                <a href="#settings" class="sidebar-link">Аккаунт</a>
-                {% if session.adm %}
-                    <a href="#tasks", class="sidebar-link">Банк заданий</a>
-                {% endif %}
-            </nav>
-        </aside>
+</section>
 
-        <main class="dashboard-main">
-
-            <section id="scores" class="dashboard-card">
-                <h2>Прогресс</h2>
-                <p>Посмотрите на свои результаты в этом месяце</p>
-                <div class="scoreChart">
-                    <div id="scoreChart"
-                         data-chart-data='{{ chart_data_json|safe }}'
-                         style="height: 400px; width: 100%;">
-                    </div>
-                </div>
-            </section>
-
-            <section class="dashboard-card">
-                <table>
-                    <tr>
-                        <td>
-                            <h2>Ваш аккаунт</h2>
-                            <div class="form-group">
-                                <label>Имя пользователя</label>
-                                <p>{{ session.username }}</p>
-                            </div>
-                            <div class="form-group">
-                                <label>Электронная почта</label>
-                                <p>{{ session.email }}</p>
-                            </div>
-                            <div class="form-group">
-                                <label>Фото профиля</label>
-                                <p><img src="{{ profile_pic }}" style="max-width: 150px; max-height: 150px;"></p>
-                            </div>
-                            <a href="{{ url_for('logout') }}"><button class="btn btn-gold">Выйти из аккаунта</button></a>
-                            <form action="{{ url_for('upload_avatar') }}" method="POST" enctype="multipart/form-data" style="display: inline;">
-                                <input type="file" id="avatarInput" name="file" accept="image/*" style="display: none;" onchange="this.form.submit()">
-                                <button type="button" class="btn btn-gold" onclick="document.getElementById('avatarInput').click()">Сменить аватарку</button>
-                            </form>
-                        </td>
-                    </tr>
-                </table>
-            </section>
-            {% if session.adm %}
-            <section class="dashboard-card">
-                <h2>Банк заданий</h2><br>
-                    {% for task in tasklist %}
-                        {{ task[5] }}<br>
-                    {% endfor %}
-            </section>
-            {% endif %}
-        </main>
-    </div>
-
-    {% include 'footer_template.html' %}
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/graphics.js') }}"></script>
-</body>
-</html>
+{% include 'footer_lk_template.html' %}

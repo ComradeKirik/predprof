@@ -1,4 +1,5 @@
 import psycopg2
+import json
 from psycopg2.extras import DictCursor
 from datetime import datetime
 import bcrypt
@@ -36,11 +37,14 @@ PRIMARY KEY(player_id)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS tasks(
     id SERIAL PRIMARY KEY,
+    subject TEXT,
+    complexity TEXT,
+    theme TEXT,
+    name TEXT,
     created DATE NOT NULL DEFAULT CURRENT_DATE,
     user_created INT,
     updated DATE NOT NULL DEFAULT CURRENT_DATE,
     user_updated INT,
-    tags TEXT,
     task TEXT,
     CONSTRAINT fk_user_created
         FOREIGN KEY (user_created) 
@@ -67,22 +71,9 @@ PRIMARY KEY(player_id)
         conn.commit()
     cursor.execute("SELECT * FROM tasks")
     if not cursor.fetchone():
-        cursor.execute("INSERT INTO tasks(user_created, user_updated, tags, task) VALUES (1, 1, 'Математика', '{name:\"47F947\", desc:\"В треугольнике ABC...\", hint:\"Впишите ответ\", answer:\"14,5\"}')")
-        cursor.execute("INSERT INTO tasks(user_created, user_updated, tags, task) VALUES (1, 1, 'Физика', '{name:\"47F947\", desc:\"В треугольнике ABC...\", hint:\"Впишите ответ\", answer:\"14,5\"}')")
+        cursor.execute("INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES ('Математика', 'Легкая', 'Квадратные уравнения', '47F947', 1, 1, '{\"desc\":\"В треугольнике ABC...\", \"hint\":\"Впишите ответ\", \"answer\":\"14,5\"}')")
+        cursor.execute("INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES ('Физика', 'Сложная', 'Термодинамика', '67A967', 1, 1, '{\"desc\":\"В треугольнике ABC...\", \"hint\":\"Впишите ответ\", \"answer\":\"14,5\"}')")
         conn.commit()
-        """id SERIAL PRIMARY KEY,
-    created DATE,
-    user_created INT,
-    updated DATE,
-    user_updated INT,
-    tags TEXT,
-    task TEXT,
-    CONSTRAINT fk_user_created
-        FOREIGN KEY (user_created) 
-        REFERENCES registered_players (player_id),
-    CONSTRAINT fk_user_updated
-        FOREIGN KEY (user_updated) 
-        REFERENCES registered_players (player_id)"""
 
 
 
@@ -142,5 +133,47 @@ def addAdmin(player_id):
     conn.commit()
 
 def getTasks():
-    cursor.execute("SELECT * FROM tasks")
+    cursor.execute("SELECT * FROM tasks ORDER BY id")
     return cursor.fetchall()
+
+def addNewTask(task_name, subject, complexity, theme, description, answer):
+    task = {"desc": description, "hint": "Введите правильный ответ", "answer": answer}
+    task_json = json.dumps(task)
+    cursor.execute("INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES (%s, %s, %s, %s, %s, %s, %s)", \
+                   (subject, complexity, theme, task_name, 1, 1, task_json))
+    """
+        CREATE TABLE IF NOT EXISTS tasks(
+        id SERIAL PRIMARY KEY,
+        subject TEXT,
+        complexity TEXT,
+        theme TEXT,
+        name TEXT,
+        created DATE NOT NULL DEFAULT CURRENT_DATE,
+        user_created INT,
+        updated DATE NOT NULL DEFAULT CURRENT_DATE,
+        user_updated INT,
+        task TEXT,
+        CONSTRAINT fk_user_created
+            FOREIGN KEY (user_created) 
+            REFERENCES registered_players (player_id),
+        CONSTRAINT fk_user_updated
+            FOREIGN KEY (user_updated) 
+            REFERENCES registered_players (player_id)
+        );
+        """
+    conn.commit()
+
+def getTask(taskid):
+    cursor.execute("SELECT * FROM tasks WHERE id = %s", (taskid,))
+    return cursor.fetchone()
+
+def updateTask(id, task_name, subject, complexity, theme, description, answer):
+    task = {"desc": description, "hint": "Введите правильный ответ", "answer": answer}
+    task_json = json.dumps(task)
+    cursor.execute("UPDATE tasks SET name = %s, subject = %s, complexity = %s, theme = %s, task=%s WHERE id = %s", \
+                   (task_name, subject, complexity, theme, task_json, id, ))
+    conn.commit()
+
+def deleteTask(id):
+    cursor.execute("DELETE FROM tasks WHERE id = %s", (id,))
+    conn.commit()

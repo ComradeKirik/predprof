@@ -1,0 +1,20 @@
+{% include 'header_lk_template.html' %}
+            {% if session.adm %}
+            <section class="dashboard-card">
+                <h2>Редактирование задания</h2><br>
+                <form action="{{ url_for('update_task', taskid=taskid) }}" method="POST" enctype="multipart/form-data">
+                        Название задачи: <br><input type="text" id="task_name" name="task_name", value="{{ task_name }}"><br>
+                        Предмет: <br><input type="text" id="subject", name="subject" value="{{ subject }}"><br>
+                        Сложность: <br><input type="text" id="complexity", name="complexity" value="{{ complexity }}"><br>
+                        Тема: <br><input type="text" id="theme", name="theme" value="{{ theme }}"><br>
+                        Условие задачи: <br><input type="text" id="description", name="description" value="{{ description }}"><br>
+                        Ответ: <br><input type="text" id="answer", name="answer" value="{{ answer }}"><br>
+                        <button type="submit" class="btn btn-gold" onclick="this.form.submit()">Сохранить</button>
+                        <input type="hidden" name="actionDelete" value="False" id="actionDelete">
+                        <button type="button" class="btn btn-gold" onclick="document.getElementById('actionDelete').value='True'; this.form.submit()">Удалить</button>
+                    </form>
+
+
+            </section>
+            {% endif %}
+{% include 'footer_lk_template.html' %}

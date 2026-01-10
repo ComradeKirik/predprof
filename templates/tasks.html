@@ -1,0 +1,15 @@
+{% include 'header_lk_template.html' %}
+            {% if session.adm %}
+            <section class="dashboard-card">
+                <h2>Банк заданий</h2><br>
+                    {% for task in tasklist %}
+                        <a style="color: black" href="{{ url_for('task', taskid=task[0]) }}">{{ task[4] }}</a><br>
+                    {% endfor %}
+                <br>
+                <br>
+                <a href="{{ url_for('new_task') }}"><button class="btn btn-gold">Новое задание</button></a>
+
+
+            </section>
+            {% endif %}
+{% include 'footer_lk_template.html' %}

@@ -1,0 +1,21 @@
+{% include 'header_lk_template.html' %}
+            {% if session.adm %}
+            <section class="dashboard-card">
+                <h2>Новое задание</h2><br>
+
+
+                <form action="{{ url_for('post_new_task') }}" method="POST" enctype="multipart/form-data">
+
+                        Название задачи: <br><input type="text" id="task_name" name="task_name"><br>
+                        Предмет: <br><input type="text" id="subject", name="subject"><br>
+                        Сложность: <br><input type="text" id="complexity", name="complexity"><br>
+                        Тема: <br><input type="text" id="theme", name="theme"><br>
+                        Условие задачи: <br><input type="text" id="description", name="description"><br>
+                        Ответ: <br><input type="text" id="answer", name="answer"><br>
+                        <button type="button" class="btn btn-gold" onclick="this.form.submit()">Сохранить</button>
+                    </form>
+
+
+            </section>
+            {% endif %}
+{% include 'footer_lk_template.html' %}

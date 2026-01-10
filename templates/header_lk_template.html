@@ -1,0 +1,29 @@
+{% include 'header_template.html' %}
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="flash-messages" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+      {% for message in messages %}
+        <div class="flash-message" style="background: #4CAF50; color: white; padding: 10px 20px; margin: 5px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+    <script>
+      setTimeout(function() {
+        var messages = document.querySelectorAll('.flash-message');
+        messages.forEach(function(msg) {
+          msg.style.opacity = '0';
+          msg.style.transition = 'opacity 0.5s';
+          setTimeout(function() {
+            msg.parentNode.removeChild(msg);
+          }, 500);
+        });
+      }, 3000);
+    </script>
+  {% endif %}
+{% endwith %}
+
+    <div class="dashboard-container">
+        {% include 'sidebar_menu.html' %}
+      <main class="dashboard-main">

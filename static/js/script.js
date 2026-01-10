@@ -1,3 +1,4 @@
+/*
 // Simple interaction for the "Start preparing" link
 document.querySelector('.btn-start').addEventListener('click', function(e) {
     e.preventDefault();
@@ -33,3 +34,4 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
         errorDiv.style.display = "none";
     }
 });
+*/

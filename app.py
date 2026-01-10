@@ -95,22 +95,29 @@ def dashboard():
 
         # Преобразуем в JSON строку
         chart_data = json.dumps(chart_data)
-        # Фото профиля
-        profile_pic_path = f"static/profile_pics/pic_{session['id']}"
-        if not os.path.exists(profile_pic_path):
-            print("not exists")
-            profile_pic = "static/profile_pics/generic_profile_picture.jpg"
-        else:
-            profile_pic = f"static/profile_pics/pic_{session['id']}"
-        print(profile_pic)
+
         return render_template('dashboard.html',
                                chart_data_json=chart_data,
-                               profile_pic=profile_pic,
-                               username=session.get('username', 'Пользователь'),
-                               tasklist=DBoperations.getTasks())
+                               username=session.get('username', 'Пользователь')
+                               )
     except KeyError:
         return redirect(url_for('login'))
 
+@app.route("/tasks")
+def tasks():
+    return render_template('tasks.html',
+                           tasklist=DBoperations.getTasks())
+@app.route("/account")
+def account():
+    # Фото профиля
+    profile_pic_path = f"static/profile_pics/pic_{session['id']}"
+    if not os.path.exists(profile_pic_path):
+        print("not exists")
+        profile_pic = "static/profile_pics/generic_profile_picture.jpg"
+    else:
+        profile_pic = f"static/profile_pics/pic_{session['id']}"
+    return render_template('account.html',
+                           profile_pic=profile_pic)
 
 @app.context_processor
 def inject_user_data():
@@ -159,10 +166,10 @@ def upload_avatar():
             file.save(filepath)
             flash('Аватар успешно обновлен!')
 
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('account'))
         else:
             flash('Недопустимый формат файла. Разрешены: png, jpg, jpeg')
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('account'))
 
     except Exception as e:
         print(f"Ошибка загрузки аватара: {e}")
@@ -172,6 +179,58 @@ def upload_avatar():
 @app.route('/admin_panel', methods=['GET', 'POST'])
 def admin_panel():
     return render_template('admin_panel.html')
+
+@app.route('/task/<taskid>', methods=['GET'])
+def task(taskid):
+    taskInfo = DBoperations.getTask(taskid)
+    print(taskInfo)
+    task_name = taskInfo[4]
+    subject = taskInfo[1]
+    complexity = taskInfo[2]
+    theme = taskInfo[3]
+
+    text = json.loads(taskInfo[9])
+    print(text)
+    description = text['desc']
+    answer = text['answer']
+    return render_template('task.html',
+                           task_name=task_name,
+                           subject=subject,
+                           complexity=complexity,
+                           theme=theme,
+                           description=description,
+                           answer=answer,
+                           taskid=taskid)
+@app.route('/update_task/<taskid>', methods=['GET', 'POST'])
+def update_task(taskid):
+    task_name = request.form.get('task_name')
+    subject = request.form.get('subject')
+    complexity = request.form.get('complexity')
+    theme = request.form.get('theme')
+    description = request.form.get('description')
+    answer = request.form.get('answer')
+    actionDelete = request.form.get('actionDelete')
+    if actionDelete == "True":
+        DBoperations.deleteTask(taskid)
+    else:
+        taskid = taskid
+        DBoperations.updateTask(taskid, task_name, subject, complexity, theme, description, answer)
+    return redirect(url_for('tasks'))
+
+@app.route('/new_task')
+def new_task():
+    return render_template('new_task.html')
+
+@app.route('/post_new_task', methods=['POST', 'GET'])
+def post_new_task():
+    task_name = request.form.get('task_name')
+    subject = request.form.get('subject')
+    complexity = request.form.get('complexity')
+    theme = request.form.get('theme')
+    description = request.form.get('description')
+    answer = request.form.get('answer')
+    DBoperations.addNewTask(task_name, subject, complexity, theme, description, answer)
+    return redirect(url_for('tasks'))
 
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=5000)
