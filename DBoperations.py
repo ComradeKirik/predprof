@@ -1,7 +1,7 @@
 import psycopg2
 from psycopg2.extras import DictCursor
 from datetime import datetime
-
+import bcrypt
 conn = psycopg2.connect(host="localhost", user="postgres", password="TK", port=5432, dbname="players")
 if conn:
     print("Connected")
@@ -47,14 +47,23 @@ def checkUserName(username):
 def addNewUser(username, email, password_hash):
     cursor.execute(
         "INSERT INTO registered_players(player_score, player_name, player_password, email) VALUES (1000, %s, %s, %s)", \
-        (username, password_hash, email))
+        (username, password_hash.decode('utf-8'), email))
+    print(password_hash)
     conn.commit()
 
 
-def loginUser(username, password_hash):
-    cursor.execute("SELECT * FROM registered_players WHERE player_name = %s AND player_password = %s", \
-                   (username, password_hash))
-    return cursor.fetchone()
+def loginUser(username, password):
+    #cursor.execute("SELECT * FROM registered_players WHERE player_name = %s AND player_password = %s", \
+     #              (username, password_hash))
+    cursor.execute("SELECT * FROM registered_players WHERE player_name = %s", \
+                   (username))
+    user = cursor.fetchone()
+    if user:
+        print(user)
+        print( user[3].encode('utf-8'))
+        if bcrypt.checkpw(password.encode(), user[3].encode('utf-8')):
+            return user
+    return None
 
 
 def daily_score_backup():

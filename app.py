@@ -1,5 +1,6 @@
 from flask import Flask, blueprints, request, render_template, session, url_for, redirect, flash
 from hashlib import sha256
+import bcrypt
 import re
 import DBoperations
 from dotenv import load_dotenv
@@ -30,8 +31,7 @@ def login():
     if request.method == "POST" and "username" in request.form and "password" in request.form:
         username = request.form.get("username")
         password = request.form.get("password")
-        password_hash = sha256(password.encode('utf-8')).hexdigest()
-        account = DBoperations.loginUser(username, password_hash)
+        account = DBoperations.loginUser(username, password)
         if account:
             session['loggedin'] = True
             session['id'] = account[0]
@@ -64,7 +64,8 @@ def register():
         username = request.form.get("username")
         password = request.form.get("password")
         email = request.form.get("email")
-        password_hash = sha256(password.encode('utf-8')).hexdigest()
+        #password_hash = sha256(password.encode('utf-8')).hexdigest()
+        password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
 
         if DBoperations.checkUserEmail(email) != None:
             msg = "Данная почта уже зарегистрирована"
@@ -74,6 +75,8 @@ def register():
             msg = "Данный никнейм уже используется!"
         elif not username or not email or not password:
             msg = "Пожалуйста, заполните все поля!"
+        elif len(password) < 8:
+            msg = "Пароль должен быть длиной 8 и более символов!"
         else:
             DBoperations.addNewUser(username, email, password_hash)
             return redirect(url_for('dashboard'))
