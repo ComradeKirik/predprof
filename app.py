@@ -1,5 +1,6 @@
 from flask import Flask, blueprints, request, render_template, session, url_for, redirect, flash
 from hashlib import sha256
+import bcrypt
 import re
 import DBoperations
 from dotenv import load_dotenv
@@ -29,17 +30,16 @@ def login():
     if request.method == "POST" and "username" in request.form and "password" in request.form:
         username = request.form.get("username")
         password = request.form.get("password")
-        password_hash = sha256(password.encode('utf-8')).hexdigest()
-        account = DBoperations.loginUser(username, password_hash)
+        account = DBoperations.loginUser(username, password)
         if account:
             session['loggedin'] = True
             session['id'] = account[0]
             session['username'] = account[1]
             session['email'] = account[4]
             session['adm'] = DBoperations.isAdmin(account[0])
-            profile_pic_path = f"static/profile_pics/pic_{session['id']}.jpg"
+            profile_pic_path = f"static/profile_pics/pic_{session['id']}"
             if os.path.exists(profile_pic_path):
-                session['profile_pic'] = f"/static/profile_pics/pic_{session['id']}.jpg"
+                session['profile_pic'] = f"/static/profile_pics/pic_{session['id']}"
             else:
                 session['profile_pic'] = "/static/profile_pics/generic_profile_picture.jpg"
             return redirect(url_for('dashboard'))
@@ -64,7 +64,8 @@ def register():
         username = request.form.get("username")
         password = request.form.get("password")
         email = request.form.get("email")
-        password_hash = sha256(password.encode('utf-8')).hexdigest()
+        #password_hash = sha256(password.encode('utf-8')).hexdigest()
+        password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
 
         if DBoperations.checkUserEmail(email) != None:
             msg = "Данная почта уже зарегистрирована"
@@ -74,6 +75,8 @@ def register():
             msg = "Данный никнейм уже используется!"
         elif not username or not email or not password:
             msg = "Пожалуйста, заполните все поля!"
+        elif len(password) < 8:
+            msg = "Пароль должен быть длиной 8 и более символов!"
         else:
             DBoperations.addNewUser(username, email, password_hash)
             return redirect(url_for('dashboard'))
@@ -93,12 +96,12 @@ def dashboard():
         # Преобразуем в JSON строку
         chart_data = json.dumps(chart_data)
         # Фото профиля
-        profile_pic_path = f"static/profile_pics/pic_{session['id']}.jpg"
+        profile_pic_path = f"static/profile_pics/pic_{session['id']}"
         if not os.path.exists(profile_pic_path):
             print("not exists")
             profile_pic = "static/profile_pics/generic_profile_picture.jpg"
         else:
-            profile_pic = f"static/profile_pics/pic_{session['id']}.jpg"
+            profile_pic = f"static/profile_pics/pic_{session['id']}"
         print(profile_pic)
         return render_template('dashboard.html',
                                chart_data_json=chart_data,
@@ -149,7 +152,7 @@ def upload_avatar():
                 os.makedirs(UPLOAD_FOLDER)
 
             print("There is no mistakes")
-            filename = f"pic_{user_id}.jpg"
+            filename = f"pic_{user_id}"
             filepath = os.path.join(UPLOAD_FOLDER, filename)
 
             file.save(filepath)
@@ -157,7 +160,7 @@ def upload_avatar():
 
             return redirect(url_for('dashboard'))
         else:
-            flash('Недопустимый формат файла. Разрешены: png, jpg, jpeg, gif')
+            flash('Недопустимый формат файла. Разрешены: png, jpg, jpeg')
             return redirect(url_for('dashboard'))
 
     except Exception as e:
