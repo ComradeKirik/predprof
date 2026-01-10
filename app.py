@@ -37,9 +37,9 @@ def login():
             session['id'] = account[0]
             session['username'] = account[1]
             session['email'] = account[4]
-            profile_pic_path = f"static/profile_pics/pic_{session['id']}.jpg"
+            profile_pic_path = f"static/profile_pics/pic_{session['id']}"
             if os.path.exists(profile_pic_path):
-                session['profile_pic'] = f"/static/profile_pics/pic_{session['id']}.jpg"
+                session['profile_pic'] = f"/static/profile_pics/pic_{session['id']}"
             else:
                 session['profile_pic'] = "/static/profile_pics/generic_profile_picture.jpg"
             return redirect(url_for('dashboard'))
@@ -96,12 +96,12 @@ def dashboard():
         # Преобразуем в JSON строку
         chart_data = json.dumps(chart_data)
         # Фото профиля
-        profile_pic_path = f"static/profile_pics/pic_{session['id']}.jpg"
+        profile_pic_path = f"static/profile_pics/pic_{session['id']}"
         if not os.path.exists(profile_pic_path):
             print("not exists")
             profile_pic = "static/profile_pics/generic_profile_picture.jpg"
         else:
-            profile_pic = f"static/profile_pics/pic_{session['id']}.jpg"
+            profile_pic = f"static/profile_pics/pic_{session['id']}"
         print(profile_pic)
         return render_template('dashboard.html',
                                chart_data_json=chart_data,
@@ -152,7 +152,7 @@ def upload_avatar():
                 os.makedirs(UPLOAD_FOLDER)
 
             print("There is no mistakes")
-            filename = f"pic_{user_id}.jpg"
+            filename = f"pic_{user_id}"
             filepath = os.path.join(UPLOAD_FOLDER, filename)
 
             file.save(filepath)
@@ -160,7 +160,7 @@ def upload_avatar():
 
             return redirect(url_for('dashboard'))
         else:
-            flash('Недопустимый формат файла. Разрешены: png, jpg, jpeg, gif')
+            flash('Недопустимый формат файла. Разрешены: png, jpg, jpeg')
             return redirect(url_for('dashboard'))
 
     except Exception as e:
