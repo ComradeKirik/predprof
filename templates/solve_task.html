@@ -1,0 +1,17 @@
+{% include 'header_lk_template.html' %}
+<div class="dashboard-card">
+
+    <h2>{{ task_name }}</h2><br>
+    {{ solvationStatus|safe }}<br>
+    Сложность: {{ complexity }}<br>
+    Тема: {{ theme }}<br><br>
+    <div class="task-text">{{ description }}</div><br>
+    <h3>{{ hint }}:</h3>
+    <form action="{{ url_for('solve_task', taskid=taskid) }} " method="POST">
+        <input type="text", id="answer", name="answer" {% if trigger %} readonly="readonly" {% endif %}>
+        <button type="button" class="btn btn-gold" onclick="this.form.submit()">Отправить ответ</button>
+    </form>
+    {{ msg }}<br>
+    <a href="{{ url_for('choose_task') }}"><button type="button" class="btn btn-gold">Вернуться</button></a>
+</div>
+{% include 'footer_lk_template.html' %}

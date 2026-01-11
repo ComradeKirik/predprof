@@ -232,5 +232,81 @@ def post_new_task():
     DBoperations.addNewTask(task_name, subject, complexity, theme, description, answer)
     return redirect(url_for('tasks'))
 
+@app.route('/choose_task')
+def choose_task():
+    user_id = session['id']
+    tasklist = DBoperations.getTasks()
+    tasklist_not_solved = []
+    solved = []
+    unsolved = []
+    for i in tasklist:
+        if not DBoperations.solvedTasksBy(user_id, i[0]):
+            tasklist_not_solved.append(i)
+        else:
+            if DBoperations.howSolved(user_id, i[0]):
+                solved.append(i)
+            else:
+                unsolved.append(i)
+    return render_template('choose_task.html', tasklist=tasklist_not_solved, solved=solved, unsolved=unsolved)
+
+@app.route('/solve_task/<taskid>', methods=['GET', 'POST'])
+def solve_task(taskid):
+    msg = ""
+    solvationStatus = ""
+    trigger = DBoperations.isSolved(session['id'], taskid)
+    taskInfo = DBoperations.getTask(taskid)
+    print(taskInfo)
+    task_name = taskInfo[4]
+    complexity = taskInfo[2]
+    theme = taskInfo[3]
+
+    text = json.loads(taskInfo[9])
+    description = text['desc']
+    hint = text['hint']
+    right_answer = DBoperations.getSolvation(taskid)
+    try:
+        if DBoperations.howSolved(session['id'], taskid):
+            solvationStatus = f"<div class='solvedRight'>Задание решено верно, ваш ответ: {right_answer}</div>"
+        else:
+            solvationStatus = f"<div class='solvedBad'>Задание решено неверно, правильный ответ: {right_answer}</div>"
+    except TypeError:
+        pass
+    if request.method == "GET":
+        return render_template('solve_task.html',
+                               taskid=taskid,
+                               task_name=task_name,
+                               complexity=complexity,
+                               theme=theme,
+                               description=description,
+                               hint=hint,
+                               trigger=trigger,
+                               solvationStatus=solvationStatus
+                               )
+    if request.method == "POST":
+        sent_answer = request.form.get('answer')
+
+        if sent_answer == "" or sent_answer == " ":
+            msg = "Поле ответа не может быть пустым!"
+        else:
+            if right_answer == sent_answer:
+                msg = "Задание решено верно!"
+                DBoperations.setSolvation(taskid, session['id'], True)
+            else:
+                DBoperations.setSolvation(taskid, session['id'], False)
+                msg = f"Задание решено неверно! Правильный ответ: {right_answer}. Ваш ответ: {sent_answer}"
+        return render_template('solve_task.html',
+                               taskid=taskid,
+                               task_name=task_name,
+                               complexity=complexity,
+                               theme=theme,
+                               description=description,
+                               hint=hint,
+                               msg=msg,
+                               sent_answer=sent_answer,
+                               trigger=trigger,
+                               solvationStatus=solvationStatus
+                               )
+
+
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=5000)

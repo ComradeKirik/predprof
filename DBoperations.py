@@ -55,13 +55,18 @@ PRIMARY KEY(player_id)
     );
     """)
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS solvedTasks(
-    id SERIAL PRIMARY KEY,
-    task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
-    user_id INTEGER NOT NULL,
-    solved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(task_id, user_id)
-    );
+    CREATE TABLE IF NOT EXISTS solved_tasks(
+    user_id INT NOT NULL,
+    task_id INT NOT NULL,
+    solved_at DATE NOT NULL DEFAULT CURRENT_DATE,
+    is_right BOOLEAN,
+    CONSTRAINT fk_user_solved
+        FOREIGN KEY (user_id) 
+        REFERENCES registered_players (player_id),
+    CONSTRAINT fk_task_solved
+        FOREIGN KEY (task_id) 
+        REFERENCES tasks (id)
+    )
     """)
     conn.commit()
     cursor.execute("SELECT * FROM registered_players")
@@ -177,3 +182,40 @@ def updateTask(id, task_name, subject, complexity, theme, description, answer):
 def deleteTask(id):
     cursor.execute("DELETE FROM tasks WHERE id = %s", (id,))
     conn.commit()
+
+def getSolvation(taskid):
+    cursor.execute("SELECT task FROM tasks WHERE id = %s", (taskid,))
+    task_json = "".join(cursor.fetchone())
+    task = json.loads(task_json)
+    return task['answer']
+def setSolvation(taskid, userid, isright):
+    cursor.execute("INSERT INTO solved_tasks(user_id, task_id, is_right) VALUES (%s, %s, %s)", \
+                   (userid, taskid, isright))
+    conn.commit()
+    """CREATE TABLE IF NOT EXISTS solved_tasks(
+    user_id INT NOT NULL,
+    task_id INT NOT NULL,
+    solved_at DATE NOT NULL DEFAULT CURRENT_DATE,
+    is_right BOOLEAN,
+    CONSTRAINT fk_user_solved
+        FOREIGN KEY (user_id) 
+        REFERENCES registered_players (player_id),
+    CONSTRAINT fk_task_solved
+        FOREIGN KEY (task_id) 
+        REFERENCES tasks (id)
+    )
+    """
+def solvedTasksBy(userid, taskid):
+    cursor.execute("SELECT * FROM solved_tasks WHERE user_id = %s AND task_id = %s", (userid, taskid,))
+    if cursor.fetchone():
+        return True
+    return False
+def howSolved(userid, taskid):
+    cursor.execute("SELECT is_right FROM solved_tasks WHERE user_id = %s AND task_id = %s", (userid, taskid,))
+    return cursor.fetchone()[0]
+
+def isSolved(userid, taskid):
+    cursor.execute("SELECT * FROM solved_tasks WHERE user_id = %s AND task_id = %s", (userid, taskid,))
+    if cursor.fetchone():
+        return True
+    return False

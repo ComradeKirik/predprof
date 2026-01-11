@@ -10,7 +10,7 @@
     <header class="navbar">
         <div class="logo"><a href="{{ url_for('mainpage') }}">Example</a></div>
         <div class="nav-right">
-            <div class="dropdown">
+            <!--<div class="dropdown">
                 <button class="dropbtn">Our Courses <span class="arrow">▼</span></button>
                 <div class="dropdown-content">
                     <a href="#">Math Olympiad</a>
@@ -19,7 +19,12 @@
                     <a href="#">Linguistics Intro</a>
                     <a href="#">Biology Advanced</a>
                 </div>
-            </div>
+            </div>-->
+            {% if session.adm %}
+                    <a href="{{ url_for('tasks') }}"><button type="button" class="btn btn-gold">Банк заданий</button></a>
+                {% else %}
+                <a href="{{ url_for('choose_task') }}"><button type="button" class="btn btn-gold">Решать задания</button></a>
+                {% endif %}
             {% if loggedin %}
                 <a href="{{ url_for('dashboard') }}">
                     <img src="{{ profile_pic }}" alt="Profile" class="profile-pic">

@@ -1,0 +1,39 @@
+{% include 'header_lk_template.html' %}
+<section class="dashboard-card">
+                <h2>Банк заданий</h2><br>
+                    {% for task in tasklist %}
+                        <div class="wrapperFake">
+                        <a href="{{ url_for('solve_task', taskid=task[0]) }}" ><div class="dashboard-card">
+                            <h3>{{ task[4] }}</h3><br>
+                            Предмет: {{ task[1] }}<br>
+                            Тема: {{ task[3] }}<br>
+                            Сложность: {{ task[2] }}
+                        </div></a>
+                            </div>
+                    {% endfor %}
+                    {% for task in unsolved %}
+                        <div class="wrapperFake">
+                        <a href="{{ url_for('solve_task', taskid=task[0]) }}" ><div class="dashboard-card">
+                            <h3>{{ task[4] }}</h3><br>
+                            Предмет: {{ task[1] }}<br>
+                            Тема: {{ task[3] }}<br>
+                            Сложность: {{ task[2] }}<br>
+                            <p class="solvedBad">Решено неверно!</p>
+                        </div></a>
+                            </div>
+                    {% endfor %}
+                    {% for task in solved %}
+                        <div class="wrapperFake">
+                        <a href="{{ url_for('solve_task', taskid=task[0]) }}" ><div class="dashboard-card">
+                            <h3>{{ task[4] }}</h3><br>
+                            Предмет: {{ task[1] }}<br>
+                            Тема: {{ task[3] }}<br>
+                            Сложность: {{ task[2] }}<br>
+                            <p class="solvedRight">Решено верно!</p>
+                        </div></a>
+                            </div>
+                    {% endfor %}
+                <br>
+                <br>
+</section>
+{% include 'footer_lk_template.html' %}
