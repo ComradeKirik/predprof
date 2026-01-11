@@ -20,13 +20,9 @@
                     <a href="#">Biology Advanced</a>
                 </div>
             </div>-->
-            {% if session.adm %}
-                    <a href="{{ url_for('tasks') }}"><button type="button" class="btn btn-gold">Банк заданий</button></a>
-                {% else %}
-                <a href="{{ url_for('choose_task') }}"><button type="button" class="btn btn-gold">Решать задания</button></a>
-                {% endif %}
+
             {% if loggedin %}
-                <a href="{{ url_for('dashboard') }}">
+                <a href="{{ url_for('account') }}">
                     <img src="{{ profile_pic }}" alt="Profile" class="profile-pic">
                 </a>
             {% else %}

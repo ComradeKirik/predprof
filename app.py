@@ -19,10 +19,26 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 
+def isLoggedin():
+    return 'id' not in session
+
+
+
+def isAdministrator():
+    return not DBoperations.isAdmin(session['id'])
+
+"""
+if isAdministrator():
+    render_template('404.html')
+
+"""
 @app.route("/")
 def mainpage():
     return render_template('main.html')
 
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -86,6 +102,8 @@ def register():
 
 @app.route("/dashboard")
 def dashboard():
+    if isLoggedin():
+        return redirect(url_for('login'))
     try:
         # Таблички
         scores = DBoperations.takeScorebyDays(session['id'])
@@ -105,10 +123,16 @@ def dashboard():
 
 @app.route("/tasks")
 def tasks():
+    if isLoggedin():
+        return redirect(url_for('login'))
+    if isAdministrator():
+        return render_template('404.html')
     return render_template('tasks.html',
                            tasklist=DBoperations.getTasks())
 @app.route("/account")
 def account():
+    if isLoggedin():
+        return redirect(url_for('login'))
     # Фото профиля
     profile_pic_path = f"static/profile_pics/pic_{session['id']}"
     if not os.path.exists(profile_pic_path):
@@ -142,6 +166,8 @@ def allowed_file(filename):
 
 @app.route('/upload_avatar', methods=['POST'])
 def upload_avatar():
+    if isLoggedin():
+        return redirect(url_for('login'))
     print("func")
     try:
         user_id = session['id']
@@ -176,12 +202,12 @@ def upload_avatar():
         flash('Произошла ошибка при загрузке файла')
         return redirect(url_for('dashboard'))
 
-@app.route('/admin_panel', methods=['GET', 'POST'])
-def admin_panel():
-    return render_template('admin_panel.html')
-
 @app.route('/task/<taskid>', methods=['GET'])
 def task(taskid):
+    if isLoggedin():
+        return redirect(url_for('login'))
+    if isAdministrator():
+        return render_template('404.html')
     taskInfo = DBoperations.getTask(taskid)
     print(taskInfo)
     task_name = taskInfo[4]
@@ -203,6 +229,10 @@ def task(taskid):
                            taskid=taskid)
 @app.route('/update_task/<taskid>', methods=['GET', 'POST'])
 def update_task(taskid):
+    if isLoggedin():
+        return redirect(url_for('login'))
+    if isAdministrator():
+        return render_template('404.html')
     task_name = request.form.get('task_name')
     subject = request.form.get('subject')
     complexity = request.form.get('complexity')
@@ -219,10 +249,18 @@ def update_task(taskid):
 
 @app.route('/new_task')
 def new_task():
+    if isLoggedin():
+        return redirect(url_for('login'))
+    if isAdministrator():
+        return render_template('404.html')
     return render_template('new_task.html')
 
 @app.route('/post_new_task', methods=['POST', 'GET'])
 def post_new_task():
+    if isLoggedin():
+        return redirect(url_for('login'))
+    if isAdministrator():
+        return render_template('404.html')
     task_name = request.form.get('task_name')
     subject = request.form.get('subject')
     complexity = request.form.get('complexity')
@@ -234,6 +272,8 @@ def post_new_task():
 
 @app.route('/choose_task')
 def choose_task():
+    if isLoggedin():
+        return redirect(url_for('login'))
     user_id = session['id']
     tasklist = DBoperations.getTasks()
     tasklist_not_solved = []
@@ -251,6 +291,8 @@ def choose_task():
 
 @app.route('/solve_task/<taskid>', methods=['GET', 'POST'])
 def solve_task(taskid):
+    if isLoggedin():
+        return redirect(url_for('login'))
     msg = ""
     solvationStatus = ""
     trigger = DBoperations.isSolved(session['id'], taskid)
