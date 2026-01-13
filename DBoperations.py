@@ -8,7 +8,8 @@ if conn:
     print("Connected")
 
 cursor = conn.cursor()
-
+#cursor.execute("SELECT id FROM tasks WHERE subject LIKE %s AND theme LIKE %s")
+#И по умолчанию заменять на звездочку
 
 def init_db():
 
@@ -219,3 +220,29 @@ def isSolved(userid, taskid):
     if cursor.fetchone():
         return True
     return False
+
+def taskFilter(subject, theme, complexity):
+    filter = []
+    values = []
+    if subject != "":
+        filter.append("subject = %s")
+        values.append(subject)
+    if theme != "":
+        filter.append("theme = %s")
+        values.append(theme)
+    if complexity != "":
+        filter.append("complexity = %s")
+        values.append(complexity)
+    if len(filter) == 0:
+        filter_str = ""
+    else:
+        filter_str = "WHERE " + " AND ".join(filter)
+    cursor.execute(f"SELECT id FROM tasks {filter_str}", tuple(values))
+    ids = [int("".join(map(str, i))) for i in cursor.fetchall()]
+    return ids
+
+def listSubjects():
+    cursor.execute("SELECT DISTINCT subject FROM tasks")
+    subjects = [""] + ["".join(map(str, i)) for i in cursor.fetchall()]
+    return subjects
+print(listSubjects())

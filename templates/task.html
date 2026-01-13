@@ -5,7 +5,13 @@
                 <form action="{{ url_for('update_task', taskid=taskid) }}" method="POST" enctype="multipart/form-data">
                         Название задачи: <br><input type="text" id="task_name" name="task_name", value="{{ task_name }}"><br>
                         Предмет: <br><input type="text" id="subject", name="subject" value="{{ subject }}"><br>
-                        Сложность: <br><input type="text" id="complexity", name="complexity" value="{{ complexity }}"><br>
+                        <!--Сложность: <br><input type="text" id="complexity", name="complexity" value="{{ complexity }}"><br>-->
+                        Сложность:<br>
+                        <select name="complexity" id="complexity" name="complexity">
+                                <option value="Легкая" {% if complexity == "Легкая" %} selected="selected"{% endif %}>Легко</option>
+                                <option value="Средняя"{% if complexity == "Средняя" %} selected="selected"{% endif %}>Средне</option>
+                                <option value="Сложная"{% if complexity == "Сложная" %} selected="selected"{% endif %}>Сложно</option>
+                        </select><br>
                         Тема: <br><input type="text" id="theme", name="theme" value="{{ theme }}"><br>
                         Условие задачи: <br><input type="text" id="description", name="description" value="{{ description }}"><br>
                         Ответ: <br><input type="text" id="answer", name="answer" value="{{ answer }}"><br>

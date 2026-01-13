@@ -1,5 +1,27 @@
 {% include 'header_lk_template.html' %}
 <section class="dashboard-card">
+                <form method="GET" action="{{ url_for('choose_task') }}">
+                <select name="subject">
+                  {% for item in subjects %}
+                    <option value="{{ item }}" {% if subject == item %}selected{% endif %}>
+                      {{ item if item != "" else "Любой предмет" }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <select name="complexity">
+                    <option value="">Любая сложность</option>
+                    <option value="Легкая" {% if complexity == "Легкая" %} selected="selected"{% endif %}>Легко</option>
+                    <option value="Средняя" {% if complexity == "Средняя" %} selected="selected"{% endif %}>Средне</option>
+                    <option value="Сложная" {% if complexity == "Сложная" %} selected="selected"{% endif %}>Сложно</option>
+                </select>
+                <select name="theme">
+                    <option value="">Любая тема</option>
+                    <option value="Квадратные уравнения">Кв. уравнения</option>
+                    <option value="Термодинамика">Термодинамика</option>
+                </select>
+
+                <button type="submit">Применить</button>
+                </form>
                 <h2>Банк заданий</h2><br>
                     {% for task in tasklist %}
                         <div class="wrapperFake">

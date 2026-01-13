@@ -75,6 +75,8 @@ def logout():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    if not isLoggedin():
+        return redirect(url_for('account'))
     msg = ""
     if request.method == "POST" and "username" in request.form and "password" in request.form and "email" in request.form:
         username = request.form.get("username")
@@ -279,15 +281,24 @@ def choose_task():
     tasklist_not_solved = []
     solved = []
     unsolved = []
+    # Это должно быть /choose_task?subject=Math&theme=Quadratic_equals
+    subject = request.args.get('subject', "")
+    complexity = request.args.get('complexity', "")
+    theme = request.args.get('theme', "")
+    allowedData = DBoperations.taskFilter(subject, theme, complexity)
     for i in tasklist:
-        if not DBoperations.solvedTasksBy(user_id, i[0]):
-            tasklist_not_solved.append(i)
-        else:
-            if DBoperations.howSolved(user_id, i[0]):
-                solved.append(i)
+        if i[0] in allowedData:
+            if not DBoperations.solvedTasksBy(user_id, i[0]):
+                tasklist_not_solved.append(i)
             else:
-                unsolved.append(i)
-    return render_template('choose_task.html', tasklist=tasklist_not_solved, solved=solved, unsolved=unsolved)
+                if DBoperations.howSolved(user_id, i[0]):
+                    solved.append(i)
+                else:
+                    unsolved.append(i)
+    subjects = DBoperations.listSubjects()
+
+
+    return render_template('choose_task.html', tasklist=tasklist_not_solved, solved=solved, unsolved=unsolved, subject=subject, subjects=subjects, complexity=complexity)
 
 @app.route('/solve_task/<taskid>', methods=['GET', 'POST'])
 def solve_task(taskid):
