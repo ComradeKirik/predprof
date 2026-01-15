@@ -3,16 +3,18 @@ import json
 from psycopg2.extras import DictCursor
 from datetime import datetime
 import bcrypt
+
 conn = psycopg2.connect(host="localhost", user="postgres", password="TK", port=5432, dbname="players")
 if conn:
     print("Connected")
 
 cursor = conn.cursor()
-#cursor.execute("SELECT id FROM tasks WHERE subject LIKE %s AND theme LIKE %s")
-#И по умолчанию заменять на звездочку
+
+
+# cursor.execute("SELECT id FROM tasks WHERE subject LIKE %s AND theme LIKE %s")
+# И по умолчанию заменять на звездочку
 
 def init_db():
-
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS registered_players 
 (
@@ -88,15 +90,18 @@ PRIMARY KEY(player_id)
     conn.commit()
     cursor.execute("SELECT * FROM registered_players")
     if not cursor.fetchone():
-        cursor.execute("INSERT INTO registered_players(player_name, player_password, email, is_admin) VALUES('admin', '$2b$12$wXK7021vkTPZBD10hDe8S.zn07MLXXLnqOgSElkTtSGgzr.Ac9lGm', 'admin@example.com', true)")
-        cursor.execute("INSERT INTO registered_players(player_name, player_password, email, is_admin) VALUES('player', '$2b$12$wXK7021vkTPZBD10hDe8S.zn07MLXXLnqOgSElkTtSGgzr.Ac9lGm', 'admin@example.com', false)")
+        cursor.execute(
+            "INSERT INTO registered_players(player_name, player_password, email, is_admin) VALUES('admin', '$2b$12$wXK7021vkTPZBD10hDe8S.zn07MLXXLnqOgSElkTtSGgzr.Ac9lGm', 'admin@example.com', true)")
+        cursor.execute(
+            "INSERT INTO registered_players(player_name, player_password, email, is_admin) VALUES('player', '$2b$12$wXK7021vkTPZBD10hDe8S.zn07MLXXLnqOgSElkTtSGgzr.Ac9lGm', 'admin@example.com', false)")
         conn.commit()
     cursor.execute("SELECT * FROM tasks")
     if not cursor.fetchone():
-        cursor.execute("INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES ('Математика', 'Легкая', 'Квадратные уравнения', '47F947', 1, 1, '{\"desc\":\"В треугольнике ABC...\", \"hint\":\"Впишите ответ\", \"answer\":\"14,5\"}')")
-        cursor.execute("INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES ('Физика', 'Сложная', 'Термодинамика', '67A967', 1, 1, '{\"desc\":\"В треугольнике ABC...\", \"hint\":\"Впишите ответ\", \"answer\":\"14,5\"}')")
+        cursor.execute(
+            "INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES ('Математика', 'Легкая', 'Квадратные уравнения', '47F947', 1, 1, '{\"desc\":\"В треугольнике ABC...\", \"hint\":\"Впишите ответ\", \"answer\":\"14,5\"}')")
+        cursor.execute(
+            "INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES ('Физика', 'Сложная', 'Термодинамика', '67A967', 1, 1, '{\"desc\":\"В треугольнике ABC...\", \"hint\":\"Впишите ответ\", \"answer\":\"14,5\"}')")
         conn.commit()
-
 
 
 def checkUserEmail(email):
@@ -118,14 +123,14 @@ def addNewUser(username, email, password_hash):
 
 
 def loginUser(username, password):
-    #cursor.execute("SELECT * FROM registered_players WHERE player_name = %s AND player_password = %s", \
-     #              (username, password_hash))
+    # cursor.execute("SELECT * FROM registered_players WHERE player_name = %s AND player_password = %s", \
+    #              (username, password_hash))
     print(username)
     cursor.execute("SELECT * FROM registered_players WHERE player_name = %s", (username,))
     user = cursor.fetchone()
     if user:
         print(user)
-        print( user[3].encode('utf-8'))
+        print(user[3].encode('utf-8'))
         if bcrypt.checkpw(password.encode(), user[3].encode('utf-8')):
             return user
     return None
@@ -146,45 +151,56 @@ def takeScorebyDays(player_id: int):
                    (player_id, current_date))
     return cursor.fetchall()
 
+
 def isAdmin(player_id: int):
-    cursor.execute("SELECT * FROM registered_players WHERE player_id = %s AND is_admin = true", (player_id, ))
+    cursor.execute("SELECT * FROM registered_players WHERE player_id = %s AND is_admin = true", (player_id,))
     return cursor.fetchone()
 
+
 def addAdmin(player_id):
-    cursor.execute("INSERT INTO admins(user_id) VALUES (%s)", (player_id, ))
+    cursor.execute("INSERT INTO admins(user_id) VALUES (%s)", (player_id,))
     conn.commit()
+
 
 def getTasks():
     cursor.execute("SELECT * FROM tasks ORDER BY id")
     return cursor.fetchall()
 
+
 def addNewTask(task_name, subject, complexity, theme, description, answer, hint):
     task = {"desc": description, "hint": hint, "answer": answer}
     task_json = json.dumps(task)
-    cursor.execute("INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES (%s, %s, %s, %s, %s, %s, %s)", \
-                   (subject, complexity, theme, task_name, 1, 1, task_json))
+    cursor.execute(
+        "INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES (%s, %s, %s, %s, %s, %s, %s)", \
+        (subject, complexity, theme, task_name, 1, 1, task_json))
     conn.commit()
+
 
 def getTask(taskid):
     cursor.execute("SELECT * FROM tasks WHERE id = %s", (taskid,))
     return cursor.fetchone()
 
+
 def updateTask(id, task_name, subject, complexity, theme, description, answer, hint):
     task = {"desc": description, "hint": hint, "answer": answer}
     task_json = json.dumps(task)
     cursor.execute("UPDATE tasks SET name = %s, subject = %s, complexity = %s, theme = %s, task=%s WHERE id = %s", \
-                   (task_name, subject, complexity, theme, task_json, id, ))
+                   (task_name, subject, complexity, theme, task_json, id,))
     conn.commit()
+
 
 def deleteTask(id):
     cursor.execute("DELETE FROM tasks WHERE id = %s", (id,))
     conn.commit()
+
 
 def getSolvation(taskid):
     cursor.execute("SELECT task FROM tasks WHERE id = %s", (taskid,))
     task_json = "".join(cursor.fetchone())
     task = json.loads(task_json)
     return task['answer']
+
+
 def setSolvation(taskid, userid, isright):
     cursor.execute("INSERT INTO solved_tasks(user_id, task_id, is_right) VALUES (%s, %s, %s)", \
                    (userid, taskid, isright))
@@ -203,14 +219,18 @@ def setSolvation(taskid, userid, isright):
     )
     """
 
+
 def solvedTasksBy(userid, taskid):
     cursor.execute("SELECT * FROM solved_tasks WHERE user_id = %s AND task_id = %s", (userid, taskid,))
     if cursor.fetchone():
         return True
     return False
+
+
 def howSolved(userid, taskid):
     cursor.execute("SELECT is_right FROM solved_tasks WHERE user_id = %s AND task_id = %s", (userid, taskid,))
     return cursor.fetchone()[0]
+
 
 def isSolved(userid, taskid):
     cursor.execute("SELECT * FROM solved_tasks WHERE user_id = %s AND task_id = %s", (userid, taskid,))
@@ -218,16 +238,25 @@ def isSolved(userid, taskid):
         return True
     return False
 
+
 def startSolving(userid, taskid):
-    cursor.execute("INSERT INTO task_in_process(user_id, task_id) VALUES(%s, %s) ON CONFLICT(user_id, task_id) DO NOTHING", (userid, taskid))
+    cursor.execute(
+        "INSERT INTO task_in_process(user_id, task_id) VALUES(%s, %s) ON CONFLICT(user_id, task_id) DO NOTHING",
+        (userid, taskid))
     conn.commit()
 
+
 def setSolvationTime(taskid, userid):
-    cursor.execute("UPDATE task_in_process SET ended_at = CURRENT_TIMESTAMP WHERE task_id = %s AND user_id = %s ", (taskid, userid))
+    cursor.execute("UPDATE task_in_process SET ended_at = CURRENT_TIMESTAMP WHERE task_id = %s AND user_id = %s ",
+                   (taskid, userid))
     conn.commit()
+
+
 def setHintStatus(taskid, userid):
     cursor.execute("UPDATE task_in_process SET is_hinted = true WHERE task_id = %s AND user_id = %s", (taskid, userid))
     conn.commit()
+
+
 def taskFilter(subject, theme, complexity):
     filter = []
     values = []
@@ -247,6 +276,7 @@ def taskFilter(subject, theme, complexity):
     cursor.execute(f"SELECT id FROM tasks {filter_str}", tuple(values))
     ids = [int("".join(map(str, i))) for i in cursor.fetchall()]
     return ids
+
 
 def listSubjects():
     cursor.execute("SELECT DISTINCT subject FROM tasks")
