@@ -69,6 +69,22 @@ PRIMARY KEY(player_id)
         REFERENCES tasks (id)
     )
     """)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS task_in_process(
+    user_id INT NOT NULL,
+    task_id INT NOT NULL,
+    is_hinted BOOLEAN DEFAULT FALSE,
+    started_at TIMESTAMP  DEFAULT CURRENT_TIMESTAMP,
+    ended_at TIMESTAMP  DEFAULT NULL,
+    PRIMARY KEY (user_id, task_id),
+    CONSTRAINT fk_user_solved
+        FOREIGN KEY (user_id) 
+        REFERENCES registered_players (player_id),
+    CONSTRAINT fk_task_solved
+        FOREIGN KEY (task_id) 
+        REFERENCES tasks (id)
+    )
+    """)
     conn.commit()
     cursor.execute("SELECT * FROM registered_players")
     if not cursor.fetchone():
@@ -142,39 +158,19 @@ def getTasks():
     cursor.execute("SELECT * FROM tasks ORDER BY id")
     return cursor.fetchall()
 
-def addNewTask(task_name, subject, complexity, theme, description, answer):
-    task = {"desc": description, "hint": "Введите правильный ответ", "answer": answer}
+def addNewTask(task_name, subject, complexity, theme, description, answer, hint):
+    task = {"desc": description, "hint": hint, "answer": answer}
     task_json = json.dumps(task)
     cursor.execute("INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES (%s, %s, %s, %s, %s, %s, %s)", \
                    (subject, complexity, theme, task_name, 1, 1, task_json))
-    """
-        CREATE TABLE IF NOT EXISTS tasks(
-        id SERIAL PRIMARY KEY,
-        subject TEXT,
-        complexity TEXT,
-        theme TEXT,
-        name TEXT,
-        created DATE NOT NULL DEFAULT CURRENT_DATE,
-        user_created INT,
-        updated DATE NOT NULL DEFAULT CURRENT_DATE,
-        user_updated INT,
-        task TEXT,
-        CONSTRAINT fk_user_created
-            FOREIGN KEY (user_created) 
-            REFERENCES registered_players (player_id),
-        CONSTRAINT fk_user_updated
-            FOREIGN KEY (user_updated) 
-            REFERENCES registered_players (player_id)
-        );
-        """
     conn.commit()
 
 def getTask(taskid):
     cursor.execute("SELECT * FROM tasks WHERE id = %s", (taskid,))
     return cursor.fetchone()
 
-def updateTask(id, task_name, subject, complexity, theme, description, answer):
-    task = {"desc": description, "hint": "Введите правильный ответ", "answer": answer}
+def updateTask(id, task_name, subject, complexity, theme, description, answer, hint):
+    task = {"desc": description, "hint": hint, "answer": answer}
     task_json = json.dumps(task)
     cursor.execute("UPDATE tasks SET name = %s, subject = %s, complexity = %s, theme = %s, task=%s WHERE id = %s", \
                    (task_name, subject, complexity, theme, task_json, id, ))
@@ -206,6 +202,7 @@ def setSolvation(taskid, userid, isright):
         REFERENCES tasks (id)
     )
     """
+
 def solvedTasksBy(userid, taskid):
     cursor.execute("SELECT * FROM solved_tasks WHERE user_id = %s AND task_id = %s", (userid, taskid,))
     if cursor.fetchone():
@@ -221,6 +218,16 @@ def isSolved(userid, taskid):
         return True
     return False
 
+def startSolving(userid, taskid):
+    cursor.execute("INSERT INTO task_in_process(user_id, task_id) VALUES(%s, %s) ON CONFLICT(user_id, task_id) DO NOTHING", (userid, taskid))
+    conn.commit()
+
+def setSolvationTime(taskid, userid):
+    cursor.execute("UPDATE task_in_process SET ended_at = CURRENT_TIMESTAMP WHERE task_id = %s AND user_id = %s ", (taskid, userid))
+    conn.commit()
+def setHintStatus(taskid, userid):
+    cursor.execute("UPDATE task_in_process SET is_hinted = true WHERE task_id = %s AND user_id = %s", (taskid, userid))
+    conn.commit()
 def taskFilter(subject, theme, complexity):
     filter = []
     values = []
@@ -245,4 +252,3 @@ def listSubjects():
     cursor.execute("SELECT DISTINCT subject FROM tasks")
     subjects = [""] + ["".join(map(str, i)) for i in cursor.fetchall()]
     return subjects
-print(listSubjects())

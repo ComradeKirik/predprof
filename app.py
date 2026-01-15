@@ -23,22 +23,26 @@ def isLoggedin():
     return 'id' not in session
 
 
-
 def isAdministrator():
     return not DBoperations.isAdmin(session['id'])
+
 
 """
 if isAdministrator():
     render_template('404.html')
 
 """
+
+
 @app.route("/")
 def mainpage():
     return render_template('main.html')
 
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -82,7 +86,7 @@ def register():
         username = request.form.get("username")
         password = request.form.get("password")
         email = request.form.get("email")
-        #password_hash = sha256(password.encode('utf-8')).hexdigest()
+        # password_hash = sha256(password.encode('utf-8')).hexdigest()
         password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
 
         if DBoperations.checkUserEmail(email) != None:
@@ -123,6 +127,7 @@ def dashboard():
     except KeyError:
         return redirect(url_for('login'))
 
+
 @app.route("/tasks")
 def tasks():
     if isLoggedin():
@@ -131,6 +136,8 @@ def tasks():
         return render_template('404.html')
     return render_template('tasks.html',
                            tasklist=DBoperations.getTasks())
+
+
 @app.route("/account")
 def account():
     if isLoggedin():
@@ -144,6 +151,7 @@ def account():
         profile_pic = f"static/profile_pics/pic_{session['id']}"
     return render_template('account.html',
                            profile_pic=profile_pic)
+
 
 @app.context_processor
 def inject_user_data():
@@ -204,6 +212,7 @@ def upload_avatar():
         flash('Произошла ошибка при загрузке файла')
         return redirect(url_for('dashboard'))
 
+
 @app.route('/task/<taskid>', methods=['GET'])
 def task(taskid):
     if isLoggedin():
@@ -221,6 +230,7 @@ def task(taskid):
     print(text)
     description = text['desc']
     answer = text['answer']
+    hint = text['hint']
     return render_template('task.html',
                            task_name=task_name,
                            subject=subject,
@@ -228,7 +238,10 @@ def task(taskid):
                            theme=theme,
                            description=description,
                            answer=answer,
-                           taskid=taskid)
+                           taskid=taskid,
+                           hint=hint)
+
+
 @app.route('/update_task/<taskid>', methods=['GET', 'POST'])
 def update_task(taskid):
     if isLoggedin():
@@ -242,12 +255,14 @@ def update_task(taskid):
     description = request.form.get('description')
     answer = request.form.get('answer')
     actionDelete = request.form.get('actionDelete')
+    hint = request.form.get('hint')
     if actionDelete == "True":
         DBoperations.deleteTask(taskid)
     else:
         taskid = taskid
-        DBoperations.updateTask(taskid, task_name, subject, complexity, theme, description, answer)
+        DBoperations.updateTask(taskid, task_name, subject, complexity, theme, description, answer, hint)
     return redirect(url_for('tasks'))
+
 
 @app.route('/new_task')
 def new_task():
@@ -256,6 +271,7 @@ def new_task():
     if isAdministrator():
         return render_template('404.html')
     return render_template('new_task.html')
+
 
 @app.route('/post_new_task', methods=['POST', 'GET'])
 def post_new_task():
@@ -269,8 +285,10 @@ def post_new_task():
     theme = request.form.get('theme')
     description = request.form.get('description')
     answer = request.form.get('answer')
-    DBoperations.addNewTask(task_name, subject, complexity, theme, description, answer)
+    hint = request.form.get('hint')
+    DBoperations.addNewTask(task_name, subject, complexity, theme, description, answer, hint)
     return redirect(url_for('tasks'))
+
 
 @app.route('/choose_task')
 def choose_task():
@@ -281,7 +299,7 @@ def choose_task():
     tasklist_not_solved = []
     solved = []
     unsolved = []
-    # Это должно быть /choose_task?subject=Math&theme=Quadratic_equals
+    # /choose_task?subject=Math&theme=Quadratic_equals
     subject = request.args.get('subject', "")
     complexity = request.args.get('complexity', "")
     theme = request.args.get('theme', "")
@@ -297,14 +315,16 @@ def choose_task():
                     unsolved.append(i)
     subjects = DBoperations.listSubjects()
 
+    return render_template('choose_task.html', tasklist=tasklist_not_solved, solved=solved, unsolved=unsolved,
+                           subject=subject, subjects=subjects, complexity=complexity)
 
-    return render_template('choose_task.html', tasklist=tasklist_not_solved, solved=solved, unsolved=unsolved, subject=subject, subjects=subjects, complexity=complexity)
 
 @app.route('/solve_task/<taskid>', methods=['GET', 'POST'])
 def solve_task(taskid):
     if isLoggedin():
         return redirect(url_for('login'))
     msg = ""
+    DBoperations.startSolving(session['id'], taskid)
     solvationStatus = ""
     trigger = DBoperations.isSolved(session['id'], taskid)
     taskInfo = DBoperations.getTask(taskid)
@@ -312,7 +332,9 @@ def solve_task(taskid):
     task_name = taskInfo[4]
     complexity = taskInfo[2]
     theme = taskInfo[3]
-
+    hint_trigger = request.args.get('hint_trigger', False)
+    if hint_trigger:
+        DBoperations.setHintStatus(taskid, session['id'])
     text = json.loads(taskInfo[9])
     description = text['desc']
     hint = text['hint']
@@ -332,6 +354,7 @@ def solve_task(taskid):
                                theme=theme,
                                description=description,
                                hint=hint,
+                               hint_trigger=hint_trigger,
                                trigger=trigger,
                                solvationStatus=solvationStatus
                                )
@@ -341,6 +364,7 @@ def solve_task(taskid):
         if sent_answer == "" or sent_answer == " ":
             msg = "Поле ответа не может быть пустым!"
         else:
+            DBoperations.setSolvationTime(taskid, session['id'])
             if right_answer == sent_answer:
                 msg = "Задание решено верно!"
                 DBoperations.setSolvation(taskid, session['id'], True)
@@ -354,11 +378,14 @@ def solve_task(taskid):
                                theme=theme,
                                description=description,
                                hint=hint,
+                               hint_trigger=hint_trigger,
                                msg=msg,
                                sent_answer=sent_answer,
                                trigger=trigger,
                                solvationStatus=solvationStatus
                                )
+
+
 
 
 if __name__ == '__main__':
