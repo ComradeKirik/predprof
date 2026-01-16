@@ -20,8 +20,10 @@
                         Подсказка: <br><input type="text" id="hint" name="hint"><br>
                         <button type="button" class="btn btn-gold" onclick="this.form.submit()">Сохранить</button>
                     </form>
-
-
+                <form action="{{ url_for('import_task') }}" method="POST" enctype="multipart/form-data" style="display: inline;">
+                        <input type="file" id="taskInput" name="file" accept=".json" style="display: none;" onchange="this.form.submit()">
+                        <button type="button" class="btn btn-gold" onclick="document.getElementById('taskInput').click()">Импортировать задачу из JSON</button>
+                </form>
             </section>
             {% endif %}
 {% include 'footer_lk_template.html' %}

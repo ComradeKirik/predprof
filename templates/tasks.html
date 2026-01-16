@@ -4,6 +4,7 @@
                 <h2>Банк заданий</h2><br>
                     {% for task in tasklist %}
                         <a style="color: black" href="{{ url_for('task', taskid=task['id']) }}">{{ task['name'] }}</a><br>
+                <a style="color: black" href="{{ url_for('download', taskid=task['id']) }}"><button class="btn btn-gold">Скачать задание</button></a><br>
                     {% endfor %}
                 <br>
                 <br>

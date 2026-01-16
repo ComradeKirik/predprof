@@ -1,4 +1,4 @@
-from flask import Flask, blueprints, request, render_template, session, url_for, redirect, flash
+from flask import Flask, blueprints, request, render_template, session, url_for, redirect, flash, send_file
 from hashlib import sha256
 import bcrypt
 import re
@@ -17,6 +17,7 @@ app.secret_key = os.getenv('SECRET_KEY')
 DBoperations.init_db()
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.config['JSONED_TASKS'] = "/static/json/"
 
 
 def isLoggedin():
@@ -170,9 +171,9 @@ def inject_user_data():
     )
 
 
-def allowed_file(filename):
+def allowed_file(filename, allowed_extensions):
     return '.' in filename and \
-        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_FOR_PICS
+        filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 
 @app.route('/upload_avatar', methods=['POST'])
@@ -192,7 +193,7 @@ def upload_avatar():
             flash('Нет выбранного файла')
             return redirect(url_for('dashboard'))
 
-        if file and allowed_file(file.filename):
+        if file and allowed_file(file.filename, ALLOWED_EXTENSIONS_FOR_PICS):
             if not os.path.exists(UPLOAD_FOLDER):
                 os.makedirs(UPLOAD_FOLDER)
 
@@ -383,6 +384,44 @@ def solve_task(taskid):
                                trigger=trigger,
                                solvationStatus=solvationStatus
                                )
+
+
+@app.route('/download/<taskid>', methods=['GET', 'POST'])
+def download(taskid):
+    DBoperations.exportToJSON(taskid)
+    path = f"static/json/file_{taskid}.json"
+    print(path)
+    return send_file(path, as_attachment=True)
+
+
+@app.route('/import_task', methods=['POST'])
+def import_task():
+    if isLoggedin():
+        return redirect(url_for('login'))
+    print("func")
+    try:
+        if 'file' not in request.files:
+            flash('Не могу прочитать файл')
+            return redirect(url_for('tasks'))
+
+        file = request.files['file']
+        if file.filename == '':
+            flash('Нет выбранного файла')
+            return redirect(url_for('tasks'))
+
+        if file and allowed_file(file.filename, {'json'}):
+            file_content = file.read().decode('utf-8')
+            DBoperations.importFromJSON(session['id'], file_content)
+            flash('Задача успешно загружена!')
+
+            return redirect(url_for('tasks'))
+        else:
+            flash('Недопустимый формат файла. Разрешены: json')
+            return redirect(url_for('tasks'))
+    except Exception as e:
+        print(f"{e} - Error!")
+        flash('Произошла неизвестная ошибка')
+        return redirect(url_for('tasks'))
 
 
 if __name__ == '__main__':
