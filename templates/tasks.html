@@ -3,7 +3,7 @@
             <section class="dashboard-card">
                 <h2>Банк заданий</h2><br>
                     {% for task in tasklist %}
-                        <a style="color: black" href="{{ url_for('task', taskid=task[0]) }}">{{ task[4] }}</a><br>
+                        <a style="color: black" href="{{ url_for('task', taskid=task['id']) }}">{{ task['name'] }}</a><br>
                     {% endfor %}
                 <br>
                 <br>

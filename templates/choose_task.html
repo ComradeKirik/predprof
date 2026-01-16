@@ -25,32 +25,32 @@
                 <h2>Банк заданий</h2><br>
                     {% for task in tasklist %}
                         <div class="wrapperFake">
-                        <a href="{{ url_for('solve_task', taskid=task[0]) }}" ><div class="dashboard-card">
-                            <h3>{{ task[4] }}</h3><br>
-                            Предмет: {{ task[1] }}<br>
-                            Тема: {{ task[3] }}<br>
-                            Сложность: {{ task[2] }}
+                        <a href="{{ url_for('solve_task', taskid=task['id']) }}" ><div class="dashboard-card">
+                            <h3>{{ task['name'] }}</h3><br>
+                            Предмет: {{ task['subject'] }}<br>
+                            Тема: {{ task['theme'] }}<br>
+                            Сложность: {{ task['complexity'] }}
                         </div></a>
                             </div>
                     {% endfor %}
                     {% for task in unsolved %}
                         <div class="wrapperFake">
-                        <a href="{{ url_for('solve_task', taskid=task[0]) }}" ><div class="dashboard-card">
-                            <h3>{{ task[4] }}</h3><br>
-                            Предмет: {{ task[1] }}<br>
-                            Тема: {{ task[3] }}<br>
-                            Сложность: {{ task[2] }}<br>
+                        <a href="{{ url_for('solve_task', taskid=task['id']) }}" ><div class="dashboard-card">
+                            <h3>{{ task['name'] }}</h3><br>
+                            Предмет: {{ task['subject'] }}<br>
+                            Тема: {{ task['theme'] }}<br>
+                            Сложность: {{ task['complexity'] }}<br>
                             <p class="solvedBad">Решено неверно!</p>
                         </div></a>
                             </div>
                     {% endfor %}
                     {% for task in solved %}
                         <div class="wrapperFake">
-                        <a href="{{ url_for('solve_task', taskid=task[0]) }}" ><div class="dashboard-card">
-                            <h3>{{ task[4] }}</h3><br>
-                            Предмет: {{ task[1] }}<br>
-                            Тема: {{ task[3] }}<br>
-                            Сложность: {{ task[2] }}<br>
+                        <a href="{{ url_for('solve_task', taskid=task['id']) }}" ><div class="dashboard-card">
+                            <h3>{{ task['name'] }}</h3><br>
+                            Предмет: {{ task['subject'] }}<br>
+                            Тема: {{ task['theme'] }}<br>
+                            Сложность: {{ task['complexity'] }}<br>
                             <p class="solvedRight">Решено верно!</p>
                         </div></a>
                             </div>

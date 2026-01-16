@@ -40,7 +40,7 @@ def mainpage():
 
 
 @app.errorhandler(404)
-def page_not_found(e):
+def page_not_found():
     return render_template('404.html'), 404
 
 
@@ -82,14 +82,15 @@ def register():
     if not isLoggedin():
         return redirect(url_for('account'))
     msg = ""
-    if request.method == "POST" and "username" in request.form and "password" in request.form and "email" in request.form:
+    if request.method == "POST" and "username" in request.form and "password" in request.form and "email" \
+            in request.form:
         username = request.form.get("username")
         password = request.form.get("password")
         email = request.form.get("email")
         # password_hash = sha256(password.encode('utf-8')).hexdigest()
         password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
 
-        if DBoperations.checkUserEmail(email) != None:
+        if DBoperations.checkUserEmail(email) is not None:
             msg = "Данная почта уже зарегистрирована"
         elif not re.match(r"^[A-Za-z0-9_]+$", username):
             msg = "Запрещенные символы в имени. Разрешена латиница, цифры и _"
@@ -220,14 +221,12 @@ def task(taskid):
     if isAdministrator():
         return render_template('404.html')
     taskInfo = DBoperations.getTask(taskid)
-    print(taskInfo)
-    task_name = taskInfo[4]
-    subject = taskInfo[1]
-    complexity = taskInfo[2]
-    theme = taskInfo[3]
+    task_name = taskInfo['name']
+    subject = taskInfo['subject']
+    complexity = taskInfo['complexity']
+    theme = taskInfo['theme']
 
     text = json.loads(taskInfo[9])
-    print(text)
     description = text['desc']
     answer = text['answer']
     hint = text['hint']
@@ -339,13 +338,6 @@ def solve_task(taskid):
     description = text['desc']
     hint = text['hint']
     right_answer = DBoperations.getSolvation(taskid)
-    try:
-        if DBoperations.howSolved(session['id'], taskid):
-            solvationStatus = f"<div class='solvedRight'>Задание решено верно, ваш ответ: {right_answer}</div>"
-        else:
-            solvationStatus = f"<div class='solvedBad'>Задание решено неверно, правильный ответ: {right_answer}</div>"
-    except TypeError:
-        pass
     if request.method == "GET":
         return render_template('solve_task.html',
                                taskid=taskid,
@@ -371,6 +363,13 @@ def solve_task(taskid):
             else:
                 DBoperations.setSolvation(taskid, session['id'], False)
                 msg = f"Задание решено неверно! Правильный ответ: {right_answer}. Ваш ответ: {sent_answer}"
+        try:
+            if DBoperations.howSolved(session['id'], taskid):
+                solvationStatus = f"<div class='solvedRight'>Задание решено верно, ваш ответ: {right_answer}</div>"
+            else:
+                solvationStatus = f"<div class='solvedBad'>Задание решено неверно, правильный ответ: {right_answer}</div>"
+        except TypeError:
+            pass
         return render_template('solve_task.html',
                                taskid=taskid,
                                task_name=task_name,

@@ -8,7 +8,7 @@ conn = psycopg2.connect(host="localhost", user="postgres", password="TK", port=5
 if conn:
     print("Connected")
 
-cursor = conn.cursor()
+cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
 
 # cursor.execute("SELECT id FROM tasks WHERE subject LIKE %s AND theme LIKE %s")
@@ -118,7 +118,6 @@ def addNewUser(username, email, password_hash):
     cursor.execute(
         "INSERT INTO registered_players(player_score, player_name, player_password, email) VALUES (1000, %s, %s, %s)", \
         (username, password_hash.decode('utf-8'), email))
-    print(password_hash)
     conn.commit()
 
 
@@ -128,10 +127,9 @@ def loginUser(username, password):
     print(username)
     cursor.execute("SELECT * FROM registered_players WHERE player_name = %s", (username,))
     user = cursor.fetchone()
+    print(user)
     if user:
-        print(user)
-        print(user[3].encode('utf-8'))
-        if bcrypt.checkpw(password.encode(), user[3].encode('utf-8')):
+        if bcrypt.checkpw(password.encode(), user['player_password'].encode('utf-8')):
             return user
     return None
 
@@ -282,3 +280,5 @@ def listSubjects():
     cursor.execute("SELECT DISTINCT subject FROM tasks")
     subjects = [""] + ["".join(map(str, i)) for i in cursor.fetchall()]
     return subjects
+
+# def exportToJSON(taskid):
