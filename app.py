@@ -286,7 +286,7 @@ def post_new_task():
     description = request.form.get('description')
     answer = request.form.get('answer')
     hint = request.form.get('hint')
-    DBoperations.addNewTask(task_name, subject, complexity, theme, description, answer, hint)
+    DBoperations.addNewTask(task_name, subject, complexity, theme, description, answer, hint, session['id'])
     return redirect(url_for('tasks'))
 
 
@@ -398,6 +398,8 @@ def download(taskid):
 def import_task():
     if isLoggedin():
         return redirect(url_for('login'))
+    if isAdministrator():
+        return render_template('404.html')
     print("func")
     try:
         if 'file' not in request.files:

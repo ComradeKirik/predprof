@@ -165,12 +165,12 @@ def getTasks():
     return cursor.fetchall()
 
 
-def addNewTask(task_name, subject, complexity, theme, description, answer, hint):
+def addNewTask(task_name, subject, complexity, theme, description, answer, hint, userid):
     task = {"desc": description, "hint": hint, "answer": answer}
     task_json = json.dumps(task)
     cursor.execute(
         "INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES (%s, %s, %s, %s, %s, %s, %s)", \
-        (subject, complexity, theme, task_name, 1, 1, task_json))
+        (subject, complexity, theme, task_name, userid, userid, task_json))
     conn.commit()
 
 
