@@ -58,4 +58,16 @@
                 <br>
                 <br>
 </section>
+<script>
+    socket.on('message', function(data) {
+    console.log(data)
+    if (['update_task', 'post_new_task'].includes(data)){
+    console.log('True')
+        location.reload();
+    }else{
+    console.log('False')
+    }
+    //location.reload(); // Перезагружаем страницу
+});
+</script>
 {% include 'footer_lk_template.html' %}

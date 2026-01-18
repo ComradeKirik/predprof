@@ -1,5 +1,5 @@
-from flask import Flask, blueprints, request, render_template, session, url_for, redirect, flash, send_file
-from hashlib import sha256
+from flask import Flask, blueprints, request, render_template, session, url_for, redirect, flash, send_file, make_response
+from flask_socketio import SocketIO, send, emit, join_room, leave_room
 import bcrypt
 import re
 import DBoperations
@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import os
 import json
 from pathlib import Path
+from io import StringIO
 
 ALLOWED_EXTENSIONS_FOR_PICS = {'png', 'jpg', 'jpeg'}
 BASE_DIR = Path(__file__).parent
@@ -18,6 +19,40 @@ DBoperations.init_db()
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['JSONED_TASKS'] = "/static/json/"
+socketio = SocketIO(app)
+
+users = {}
+
+
+# Handle user messages
+@socketio.on('message')
+def handle_message(data):
+    username = users.get(request.sid, "Anonymous")  # Get the user's name
+    emit("message", f"{username}: {data}", broadcast=True)  # Send to everyone
+
+
+# Handle disconnects
+@socketio.on('disconnect')
+def handle_disconnect():
+    username = users.pop(request.sid, "Anonymous")
+    emit("message", f"{username} left the chat", broadcast=True)
+
+
+# @app.route('/route')
+# def index():
+#     return render_template('websocket.html')
+
+# Handle new user joining
+# @socketio.on('join')
+# def handle_join(username):
+#     users[request.sid] = username  # Store username by session ID
+#     join_room(username)  # Each user gets their own "room"
+#     emit("message", f"{username} joined the chat", room=username)
+
+@socketio.on('request_reload')
+def handle_request_reload(data):
+    print("Получено событие перезагрузки, транслируем всем клиентам.")
+    emit('reload_page', broadcast=True)  # Отправляем всем клиентам
 
 
 def isLoggedin():
@@ -261,6 +296,7 @@ def update_task(taskid):
     else:
         taskid = taskid
         DBoperations.updateTask(taskid, task_name, subject, complexity, theme, description, answer, hint)
+    emit('message', 'update_task', broadcast=True, namespace="/")
     return redirect(url_for('tasks'))
 
 
@@ -287,6 +323,7 @@ def post_new_task():
     answer = request.form.get('answer')
     hint = request.form.get('hint')
     DBoperations.addNewTask(task_name, subject, complexity, theme, description, answer, hint, session['id'])
+    emit('message', 'post_new_task', broadcast=True, namespace="/")
     return redirect(url_for('tasks'))
 
 
@@ -388,10 +425,20 @@ def solve_task(taskid):
 
 @app.route('/download/<taskid>', methods=['GET', 'POST'])
 def download(taskid):
-    DBoperations.exportToJSON(taskid)
-    path = f"static/json/file_{taskid}.json"
-    print(path)
-    return send_file(path, as_attachment=True)
+    JSON_task = DBoperations.exportToJSON(taskid)
+    #path = f"static/json/file_{taskid}.json"
+    #print(path)
+    #return send_file(path, as_attachment=True)
+    with StringIO() as buffer:
+        # forming a StringIO object
+        buffer = StringIO()
+        buffer.write(JSON_task)
+        # forming a Response object with Headers to return from flask
+        response = make_response(buffer.getvalue())
+        response.headers['Content-Disposition'] = 'attachment; filename=task.json'
+        response.mimetype = 'text/json'
+        # return the Response object
+        return response
 
 
 @app.route('/import_task', methods=['POST'])
@@ -427,4 +474,5 @@ def import_task():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    # app.run(debug=True, host="0.0.0.0", port=5000)
+    socketio.run(app, debug=True, host="0.0.0.0", port=5000, allow_unsafe_werkzeug=True)

@@ -3,7 +3,7 @@
             <section class="dashboard-card">
                 <h2>Банк заданий</h2><br>
                     {% for task in tasklist %}
-                        <a style="color: black" href="{{ url_for('task', taskid=task['id']) }}">{{ task['name'] }}</a><br>
+                        <a style="color: black" href="{{ url_for('task', taskid=task['id']) }}">Задание: {{ task['name'] }}</a><br>
                 <a style="color: black" href="{{ url_for('download', taskid=task['id']) }}"><button class="btn btn-gold">Скачать задание</button></a><br>
                     {% endfor %}
                 <br>
@@ -13,4 +13,16 @@
 
             </section>
             {% endif %}
+<script>
+    socket.on('message', function(data) {
+    console.log(data)
+    if (['update_task', 'post_new_task'].includes(data)){
+    console.log('True')
+        location.reload();
+    }else{
+    console.log('False')
+    }
+    //location.reload(); // Перезагружаем страницу
+});
+</script>
 {% include 'footer_lk_template.html' %}

@@ -285,9 +285,11 @@ def exportToJSON(taskid):
     cursor.execute("SELECT subject, complexity, theme, name, task FROM tasks WHERE id=%s", (taskid,))
     task = dict(cursor.fetchone())
     JSON_task = json.dumps(task, default=str, ensure_ascii=False)
-    with open(f"static/json/file_{taskid}.json", "w+", encoding="utf-8") as file:
-        file.write(JSON_task)
-        return JSON_task
+    #with open(f"static/json/file_{taskid}.json", "w+", encoding="utf-8") as file:
+    #    file.write(JSON_task)
+    #    return JSON_task
+    return JSON_task
+
 
 def importFromJSON(userid, taskJSON):
     task = json.loads(taskJSON)
@@ -296,4 +298,4 @@ def importFromJSON(userid, taskJSON):
         print(i)
     inner_text = json.loads(task['task'])
     #Атата, здесь обнаружил ошибку с добавлением задания. Автором задания всегда указывается айди 1, т.е. если админом станет айди 3, то убдет плохо.
-    addNewTask(task['name'], task['subject'], task['complexity'], task['theme'], inner_text['desc'], inner_text['answer'], inner_text['hint'])
+    addNewTask(task['name'], task['subject'], task['complexity'], task['theme'], inner_text['desc'], inner_text['answer'], inner_text['hint'], userid)

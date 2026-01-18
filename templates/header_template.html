@@ -37,3 +37,24 @@
     {% endblock %}
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        var socket = io();
+        // var username = prompt("Enter your name:");  // Ask for username
+        // socket.emit("join", username);  // Notify server of new user
+
+        // Listen for messages from server
+        socket.on("message", function(data) {
+            // var messages = document.getElementById("messages");
+            // messages.innerHTML += `<p>${data}</p>`;
+            console.log('emitted message: ' + data)
+        });
+
+        // Function to send messages
+        function sendMessage() {
+            var msgInput = document.getElementById("msg");
+            var message = msgInput.value;
+            socket.send(message);
+            msgInput.value = "";
+        }
+    </script>
