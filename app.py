@@ -1,4 +1,5 @@
-from flask import Flask, blueprints, request, render_template, session, url_for, redirect, flash, send_file, make_response
+from flask import Flask, blueprints, request, render_template, session, url_for, redirect, flash, send_file, \
+    make_response
 from flask_socketio import SocketIO, send, emit, join_room, leave_room
 import bcrypt
 import re
@@ -426,9 +427,9 @@ def solve_task(taskid):
 @app.route('/download/<taskid>', methods=['GET', 'POST'])
 def download(taskid):
     JSON_task = DBoperations.exportToJSON(taskid)
-    #path = f"static/json/file_{taskid}.json"
-    #print(path)
-    #return send_file(path, as_attachment=True)
+    # path = f"static/json/file_{taskid}.json"
+    # print(path)
+    # return send_file(path, as_attachment=True)
     with StringIO() as buffer:
         # forming a StringIO object
         buffer = StringIO()
@@ -471,6 +472,18 @@ def import_task():
         print(f"{e} - Error!")
         flash('Произошла неизвестная ошибка')
         return redirect(url_for('tasks'))
+
+
+@app.route('/contests')
+def contest_list():
+    contests = DBoperations.listContests()
+    if not contests:
+        return render_template('contest_list.html', contests=['Соревнования отсутствуют'])
+    return render_template('contest_list.html', contests=contests)
+
+
+# Для связывания вебсокета и котест_листа нужно реализовать создание контеста, чтобы оно обновлялось каждый раз когда
+# ... создается новый контест
 
 
 if __name__ == '__main__':

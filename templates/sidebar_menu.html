@@ -1,12 +1,13 @@
 <aside class="dashboard-sidebar">
-            <h3>Добро пожаловать, {{ session.username }}!</h3>
-            <nav>
-                <a href="{{ url_for('account') }}" class="sidebar-link">Аккаунт</a>
-                <a href="{{ url_for('dashboard') }}" class="sidebar-link">Прогресс</a>
-                {% if session.adm %}
-                    <a href="{{ url_for('tasks') }}", class="sidebar-link">Банк заданий</a>
-                {% else %}
-                    <a href="{{ url_for('choose_task') }}", class="sidebar-link">Решать задания</a>
-                {% endif %}
-            </nav>
-        </aside>
+    <h3>Добро пожаловать, {{ session.username }}!</h3>
+    <nav>
+        <a href="{{ url_for('account') }}" class="sidebar-link">Аккаунт</a>
+        <a href="{{ url_for('dashboard') }}" class="sidebar-link">Прогресс</a>
+        {% if session.adm %}
+        <a href="{{ url_for('tasks') }}" , class="sidebar-link">Банк заданий</a>
+        {% else %}
+        <a href="{{ url_for('choose_task') }}" , class="sidebar-link">Решать задания</a>
+        {% endif %}
+        <a href="{{ url_for('contest_list') }}" , class="sidebar-link">Соревнования</a>
+    </nav>
+</aside>

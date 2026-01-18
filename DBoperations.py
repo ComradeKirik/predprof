@@ -10,9 +10,11 @@ if conn:
 
 cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-
 # cursor.execute("SELECT id FROM tasks WHERE subject LIKE %s AND theme LIKE %s")
 # И по умолчанию заменять на звездочку
+"""  Таблица для хранения соревнований в базе данных (Предмет, Уровень сложности, Количество заданий, Возможность повторного ответа при ошибке, Время начала, Продолжительность, 
+Участник1 (создатель), Участник2 (принявший вызов), Результат пользователя 1, Результат пользователя 2, Победитель, Статус поединка, Подпись участника1,Подпись участника2)"""
+
 
 def init_db():
     cursor.execute("""
@@ -87,6 +89,41 @@ PRIMARY KEY(player_id)
         REFERENCES tasks (id)
     )
     """)
+    # u1 - тот, кто вызвал на поединок(или создал его, не является админом)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS contests(
+        id SERIAL PRIMARY KEY,
+        subject TEXT NOT NULL,
+        complexity TEXT NOT NULL,
+        can_reanswer BOOLEAN,
+        started_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
+        ending_at TIMESTAMP(0) DEFAULT NULL,
+        user_1 INT NOT NULL,
+        user_2 INT NOT NULL,
+        u1_result TEXT,
+        u2_result TEXT,
+        winner INT,
+        status TEXT,
+        u1_accepted BOOLEAN,
+        u2_accepted BOOLEAN,
+        CONSTRAINT fk_p1
+            FOREIGN KEY (user_1) 
+            REFERENCES registered_players (player_id),
+        CONSTRAINT fk_p2
+            FOREIGN KEY (user_2) 
+            REFERENCES registered_players (player_id)
+        
+        )
+        """)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS contest_tasks(
+        contest_id INT NOT NULL,
+        tasks_id TEXT NOT NULL,
+        CONSTRAINT fk_contest_id
+            FOREIGN KEY (contest_id)
+            REFERENCES contests (id)
+    )
+    """)
     conn.commit()
     cursor.execute("SELECT * FROM registered_players")
     if not cursor.fetchone():
@@ -94,6 +131,8 @@ PRIMARY KEY(player_id)
             "INSERT INTO registered_players(player_name, player_password, email, is_admin) VALUES('admin', '$2b$12$wXK7021vkTPZBD10hDe8S.zn07MLXXLnqOgSElkTtSGgzr.Ac9lGm', 'admin@example.com', true)")
         cursor.execute(
             "INSERT INTO registered_players(player_name, player_password, email, is_admin) VALUES('player', '$2b$12$wXK7021vkTPZBD10hDe8S.zn07MLXXLnqOgSElkTtSGgzr.Ac9lGm', 'admin@example.com', false)")
+        cursor.execute(
+            "INSERT INTO registered_players(player_name, player_password, email, is_admin) VALUES('player2', '$2b$12$wXK7021vkTPZBD10hDe8S.zn07MLXXLnqOgSElkTtSGgzr.Ac9lGm', 'admin@example.com', false)")
         conn.commit()
     cursor.execute("SELECT * FROM tasks")
     if not cursor.fetchone():
@@ -101,6 +140,11 @@ PRIMARY KEY(player_id)
             "INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES ('Математика', 'Легкая', 'Квадратные уравнения', '47F947', 1, 1, '{\"desc\":\"В треугольнике ABC...\", \"hint\":\"Впишите ответ\", \"answer\":\"14,5\"}')")
         cursor.execute(
             "INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES ('Физика', 'Сложная', 'Термодинамика', '67A967', 1, 1, '{\"desc\":\"В треугольнике ABC...\", \"hint\":\"Впишите ответ\", \"answer\":\"14,5\"}')")
+        conn.commit()
+    cursor.execute("SELECT * FROM contests")
+    if not cursor.fetchone():
+        cursor.execute(
+            "INSERT INTO contests(subject, complexity, can_reanswer, started_at, ending_at, user_1, user_2, u1_result, u2_result, winner, status, u1_accepted, u2_accepted) VALUES ('Математика', 'Легкая', true, now() - interval '3 hours', now(), 2, 3, 10, 12, 3, 'Окончено', true, true)")
         conn.commit()
 
 
@@ -281,11 +325,12 @@ def listSubjects():
     subjects = [""] + ["".join(map(str, i)) for i in cursor.fetchall()]
     return subjects
 
+
 def exportToJSON(taskid):
     cursor.execute("SELECT subject, complexity, theme, name, task FROM tasks WHERE id=%s", (taskid,))
     task = dict(cursor.fetchone())
     JSON_task = json.dumps(task, default=str, ensure_ascii=False)
-    #with open(f"static/json/file_{taskid}.json", "w+", encoding="utf-8") as file:
+    # with open(f"static/json/file_{taskid}.json", "w+", encoding="utf-8") as file:
     #    file.write(JSON_task)
     #    return JSON_task
     return JSON_task
@@ -297,5 +342,30 @@ def importFromJSON(userid, taskJSON):
     for i in task:
         print(i)
     inner_text = json.loads(task['task'])
-    #Атата, здесь обнаружил ошибку с добавлением задания. Автором задания всегда указывается айди 1, т.е. если админом станет айди 3, то убдет плохо.
-    addNewTask(task['name'], task['subject'], task['complexity'], task['theme'], inner_text['desc'], inner_text['answer'], inner_text['hint'], userid)
+    # Атата, здесь обнаружил ошибку с добавлением задания. Автором задания всегда указывается айди 1, т.е. если админом станет айди 3, то убдет плохо.
+    addNewTask(task['name'], task['subject'], task['complexity'], task['theme'], inner_text['desc'],
+               inner_text['answer'], inner_text['hint'], userid)
+
+
+def listContests():
+    query = """
+        SELECT 
+            c.id, 
+            u1.player_name AS user_1_name, 
+            u2.player_name AS user_2_name, 
+            c.subject, 
+            c.complexity, 
+            c.started_at, 
+            c.ending_at, 
+            c.status
+        FROM contests c
+        JOIN registered_players u1 ON c.user_1 = u1.player_id
+        JOIN registered_players u2 ON c.user_2 = u2.player_id
+        ORDER BY c.id
+    """
+    cursor.execute(query)
+    return cursor.fetchall()
+
+
+def takeUserNameById(userid):
+    cursor.execute("SELECT player_name FROM registered_players WHERE id = %s", (userid,))
