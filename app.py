@@ -187,6 +187,7 @@ def account():
         profile_pic = "static/profile_pics/generic_profile_picture.jpg"
     else:
         profile_pic = f"static/profile_pics/pic_{session['id']}"
+
     return render_template('account.html',
                            profile_pic=profile_pic)
 
@@ -476,14 +477,76 @@ def import_task():
 
 @app.route('/contests')
 def contest_list():
+    if isLoggedin():
+        return redirect(url_for('login'))
     contests = DBoperations.listContests()
     if not contests:
         return render_template('contest_list.html', contests=['Соревнования отсутствуют'])
     return render_template('contest_list.html', contests=contests)
 
 
-# Для связывания вебсокета и котест_листа нужно реализовать создание контеста, чтобы оно обновлялось каждый раз когда
-# ... создается новый контест
+# Заявка на контест
+@app.route('/applyToContest/<contid>')
+def applyToContest(contid):
+    if not DBoperations.isUserInContests(session['id']):
+        DBoperations.addUserToContest(session['id'], contid)
+        flash('Вы успешно зарегистрировались!')
+    else:
+        print("ERROR")
+        flash('Вы уже участвуете!', 'error')
+        return redirect(url_for('contest_list'))
+    emit('message', 'applied_to_contest', broadcast=True, namespace="/")
+    return redirect(url_for('contest_list'))
+
+
+# Функция для генерации страницы с созданием соревнования
+@app.route('/create_contest')
+def create_contest():
+    if isLoggedin():
+        return redirect(url_for('login'))
+    if not DBoperations.isUserInContests(session['id']):
+        subjects = DBoperations.listSubjects()
+        return render_template('create_contest.html', subjects=subjects)
+    else:
+        flash('Вы уже участвуете!')
+        return redirect(url_for('contest_list'))
+
+
+# Функция для обработки создания соревнования
+@app.route("/post_new_contest", methods=['POST'])
+def post_new_contest():
+    if isLoggedin():
+        return redirect(url_for('login'))
+    try:
+        data = {
+            'subject': request.form.get('subject', '').strip(),
+            'complexity': request.form.get('complexity'),
+            'can_reanswer': request.form.get('can_reanswer') == 'on',
+            'started_at': request.form.get('started_at'),
+            'ending_at': request.form.get('ending_at'),
+            'user_2': request.form.get('user_2') or None,
+            'u1_accepted': True
+        }
+
+        # Получаем ID текущего пользователя из сессии
+        user1_id = session.get('id')
+        if not user1_id:
+            flash('Пользователь не авторизован', 'error')
+            return redirect(url_for('login'))
+
+        contest_id = DBoperations.createNewContest(data, user1_id)
+
+        flash(f'Соревнование #{contest_id} успешно создано!', 'success')
+        emit('message', 'post_new_contest', broadcast=True, namespace="/")
+        return redirect(url_for('contest_list'))
+
+    except ValueError as e:
+        flash(f'Ошибка в данных: {str(e)}', 'error')
+        return redirect(url_for('create_contest'))
+
+    except Exception as e:
+        flash(f'Произошла ошибка при создании соревнования: {str(e)}', 'error')
+        return redirect(url_for('contest_list'))
 
 
 if __name__ == '__main__':

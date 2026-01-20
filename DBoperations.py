@@ -99,13 +99,13 @@ PRIMARY KEY(player_id)
         started_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
         ending_at TIMESTAMP(0) DEFAULT NULL,
         user_1 INT NOT NULL,
-        user_2 INT NOT NULL,
+        user_2 INT DEFAULT NULL,
         u1_result TEXT,
         u2_result TEXT,
         winner INT,
         status TEXT,
-        u1_accepted BOOLEAN,
-        u2_accepted BOOLEAN,
+        u1_accepted BOOLEAN DEFAULT NULL,
+        u2_accepted BOOLEAN DEFAULT NULL,
         CONSTRAINT fk_p1
             FOREIGN KEY (user_1) 
             REFERENCES registered_players (player_id),
@@ -349,19 +349,7 @@ def importFromJSON(userid, taskJSON):
 
 def listContests():
     query = """
-        SELECT 
-            c.id, 
-            u1.player_name AS user_1_name, 
-            u2.player_name AS user_2_name, 
-            c.subject, 
-            c.complexity, 
-            c.started_at, 
-            c.ending_at, 
-            c.status
-        FROM contests c
-        JOIN registered_players u1 ON c.user_1 = u1.player_id
-        JOIN registered_players u2 ON c.user_2 = u2.player_id
-        ORDER BY c.id
+        SELECT * FROM contests
     """
     cursor.execute(query)
     return cursor.fetchall()
@@ -369,3 +357,101 @@ def listContests():
 
 def takeUserNameById(userid):
     cursor.execute("SELECT player_name FROM registered_players WHERE id = %s", (userid,))
+
+
+def createNewContest(data: dict, user1=None):
+    try:
+        # Валидация обязательных полей
+        required_fields = ['subject', 'complexity', 'started_at', 'ending_at']
+        for field in required_fields:
+            if not data.get(field):
+                raise ValueError(f"Обязательное поле '{field}' не заполнено")
+
+        # Валидация user1 (инициатора соревнования)
+        if not user1:
+            raise ValueError("ID первого пользователя должен быть целым числом")
+
+        # Преобразование времени с обработкой ошибок
+        today = datetime.now().date()
+
+        try:
+            started_time = datetime.strptime(data['started_at'], "%H:%M").time()
+            ended_time = datetime.strptime(data['ending_at'], "%H:%M").time()
+        except ValueError as e:
+            raise ValueError(f"Некорректный формат времени: {e}")
+
+        started_datetime = datetime.combine(today, started_time)
+        ended_datetime = datetime.combine(today, ended_time)
+
+        # Проверка логики времени (начало должно быть раньше конца)
+        if started_datetime >= ended_datetime:
+            raise ValueError("Время начала должно быть раньше времени окончания")
+
+        can_reanswer = bool(data.get('can_reanswer'))
+        u1_accepted = bool(data.get('u1_accepted', True))
+
+        # Валидация user_2 (опционально)
+        user_2 = data.get('user_2')
+        if user_2 is not None:
+            try:
+                user_2 = int(user_2)
+            except (ValueError, TypeError):
+                raise ValueError("ID второго пользователя должен быть целым числом")
+
+        # Работа с базой данных
+        contest_data = {
+            'subject': data['subject'].strip(),
+            'complexity': data['complexity'],
+            'can_reanswer': can_reanswer,
+            'started_at': started_datetime,
+            'ending_at': ended_datetime,
+            'user_1': user1,
+            'user_2': user_2,
+            'u1_accepted': u1_accepted
+        }
+
+        cursor.execute(
+            """INSERT INTO contests 
+            (subject, complexity, can_reanswer, started_at, ending_at, 
+             user_1, user_2, u1_accepted, status) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id""",
+            (contest_data['subject'],
+             contest_data['complexity'],
+             contest_data['can_reanswer'],
+             contest_data['started_at'],
+             contest_data['ending_at'],
+             contest_data['user_1'],
+             contest_data['user_2'],
+             contest_data['u1_accepted'],
+             'Ожидается')
+        )
+
+        contest_id = cursor.fetchone()[0]
+        conn.commit()
+        return contest_id
+
+    except ValueError as e:
+        print(f"Ошибка валидации данных: {e}")
+        if conn:
+            conn.rollback()
+        raise
+
+    except psycopg2.Error as e:
+        print(f"Ошибка базы данных при создании соревнования: {e}")
+        if conn:
+            conn.rollback()
+        raise
+
+    except Exception as e:
+        print(f"Неожиданная ошибка при создании соревнования: {e}")
+        if conn:
+            conn.rollback()
+        raise
+
+def isUserInContests(userid):
+    cursor.execute("SELECT * FROM CONTESTS WHERE user_1 = %s OR user_2 = %s", (userid, userid,))
+    return cursor.fetchone()
+def addUserToContest(userid, contid):
+    cursor.execute("UPDATE contests SET user_2 = %s, u2_accepted = true WHERE id = %s", (userid, contid,))
+    conn.commit()
