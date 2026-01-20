@@ -4,7 +4,7 @@ from psycopg2.extras import DictCursor
 from datetime import datetime
 import bcrypt
 
-conn = psycopg2.connect(host="localhost", user="postgres", password="TK", port=5432, dbname="players")
+conn = psycopg2.connect(host="localhost", user="postgres", password="maks", port=5432, dbname="players")
 if conn:
     print("Connected")
 

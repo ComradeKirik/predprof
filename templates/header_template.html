@@ -1,33 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Example</title>
+    <title>Predprof</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
     <header class="navbar">
-        <div class="logo"><a href="{{ url_for('mainpage') }}">Example</a></div>
+        <div class="logo"><a href="{{ url_for('mainpage') }}">🎓 Predprof</a></div>
         <div class="nav-right">
-            <!--<div class="dropdown">
-                <button class="dropbtn">Our Courses <span class="arrow">▼</span></button>
-                <div class="dropdown-content">
-                    <a href="#">Math Olympiad</a>
-                    <a href="#">Physics Prep</a>
-                    <a href="#">Informatics Pro</a>
-                    <a href="#">Linguistics Intro</a>
-                    <a href="#">Biology Advanced</a>
-                </div>
-            </div>-->
-
             {% if loggedin %}
-                <a href="{{ url_for('account') }}">
-                    <img src="{{ profile_pic }}" alt="Profile" class="profile-pic">
+                <a href="{{ url_for('account') }}" title="Мой профиль">
+                    <img src="{{ profile_pic }}" alt="Профиль" class="profile-pic">
                 </a>
             {% else %}
-                <a href="{{ url_for('login') }}">
-                    <img src="{{ profile_pic }}" alt="Profile" class="profile-pic">
+                <a href="{{ url_for('login') }}" title="Войти">
+                    <img src="/static/profile_pics/generic_profile_picture.jpg" alt="Профиль" class="profile-pic">
                 </a>
             {% endif %}
         </div>
@@ -40,17 +29,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script>
         var socket = io();
-        // var username = prompt("Enter your name:");  // Ask for username
-        // socket.emit("join", username);  // Notify server of new user
-
-        // Listen for messages from server
         socket.on("message", function(data) {
-            // var messages = document.getElementById("messages");
-            // messages.innerHTML += `<p>${data}</p>`;
-            console.log('emitted message: ' + data)
+            console.log('Сообщение: ' + data)
         });
 
-        // Function to send messages
         function sendMessage() {
             var msgInput = document.getElementById("msg");
             var message = msgInput.value;
