@@ -1,58 +1,96 @@
 {% include 'header_lk_template.html' %}
 
 {% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <div class="flash-messages" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
-      {% for message in messages %}
-        <div class="flash-message" style="background: #4CAF50; color: white; padding: 10px 20px; margin: 5px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-          {{ message }}
-        </div>
-      {% endfor %}
+{% if messages %}
+<div class="flash-messages" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+    {% for message in messages %}
+    <div class="flash-message"
+         style="background: #4CAF50; color: white; padding: 10px 20px; margin: 5px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+        {{ message }}
     </div>
-    <script>
-      setTimeout(function() {
-        var messages = document.querySelectorAll('.flash-message');
-        messages.forEach(function(msg) {
-          msg.style.opacity = '0';
-          msg.style.transition = 'opacity 0.5s';
-          setTimeout(function() {
-            msg.parentNode.removeChild(msg);
-          }, 500);
-        });
-      }, 3000);
-    </script>
-  {% endif %}
+    {% endfor %}
+</div>
+<script>
+    setTimeout(function() {
+      var messages = document.querySelectorAll('.flash-message');
+      messages.forEach(function(msg) {
+        msg.style.opacity = '0';
+        msg.style.transition = 'opacity 0.5s';
+        setTimeout(function() {
+          msg.parentNode.removeChild(msg);
+        }, 500);
+      });
+    }, 3000);
+</script>
+{% endif %}
 {% endwith %}
 
 <section class="dashboard-card">
-        <table>
-            <tr>
-                <td>
-                    <h2>Ваш аккаунт</h2>
-                    <div class="form-group">
-                        <label>Имя пользователя</label>
-                        <p>{{ session.username }}</p>
-                    </div>
-                    <div class="form-group">
-                        <label>Электронная почта</label>
-                        <p>{{ session.email }}</p>
-                    </div>
-                    <div class="form-group">
-                        <label>Фото профиля</label>
-                        <p><img src="{{ profile_pic }}" style="max-width: 150px; max-height: 150px;"></p>
-                    </div>
-                    <a href="{{ url_for('logout') }}"><button class="btn btn-gold">Выйти из аккаунта</button></a>
-                    <form action="{{ url_for('upload_avatar') }}" method="POST" enctype="multipart/form-data" style="display: inline;">
-                        <input type="file" id="avatarInput" name="file" accept="image/*" style="display: none;" onchange="this.form.submit()">
-                        <button type="button" class="btn btn-gold" onclick="document.getElementById('avatarInput').click()">Сменить аватарку</button>
-                    </form>
-                </td>
-            </tr>
-        </table>
-    </section>
+    <table>
+        <tr>
+            <td>
+                <h2>Ваш аккаунт</h2>
+                <div class="form-group">
+                    <label>Имя пользователя</label>
+                    <p>{{ session.username }}</p>
+                </div>
+                <div class="form-group">
+                    <label>Электронная почта</label>
+                    <p>{{ session.email }}</p>
+                </div>
+                <div class="form-group">
+                    <label>Фото профиля</label>
+                    <p><img src="{{ profile_pic }}" style="max-width: 150px; max-height: 150px;"></p>
+                </div>
+                <a href="{{ url_for('logout') }}">
+                    <button class="btn btn-gold">Выйти из аккаунта</button>
+                </a>
+                <form action="{{ url_for('upload_avatar') }}" method="POST" enctype="multipart/form-data"
+                      style="display: inline;">
+                    <input type="file" id="avatarInput" name="file" accept="image/*" style="display: none;"
+                           onchange="this.form.submit()">
+                    <button type="button" class="btn btn-gold" onclick="document.getElementById('avatarInput').click()">
+                        Сменить аватарку
+                    </button>
+                </form>
+            </td>
+        </tr>
+    </table>
+</section>
 
 <section class="dashboard-card">
+    <div class="card-header">
+        <h2>Ваши поединки</h2>
+        <br><span class="count">Всего: {{ contests|length }}</span><br><br>
+    </div>
 
+    <div class="contests-grid">
+        {% for contest in contests %}
+        <div class="contest-item status-{{ contest['status']|lower }}">
+            <div class="contest-info">
+                <span class="subject">{{ contest['subject'] }}</span>
+                <span class="complexity-badge {{ contest['complexity']|lower }}">
+                    {{ contest['complexity'] }}
+                </span>
+            </div>
+
+            <div class="contest-details">
+                <div class="detail">
+                    <span class="label">ID:</span> #{{ contest['id'] }}
+                </div>
+                <div class="detail">
+                    <span class="label">Противник:</span>
+                    {{ contest['user_2'] if contest['user_2'] else 'Ожидание...' }}
+                </div>
+            </div>
+
+            <div class="contest-footer">
+                <span class="timestamp">Начало: {{ contest['started_at'].strftime('%H:%M') }}</span><br>
+                <a href="{{ url_for('contest', contid=contest['id']) }}"><button class="btn btn-gold">Подробнее</button></a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </section>
 
 {% include 'footer_lk_template.html' %}

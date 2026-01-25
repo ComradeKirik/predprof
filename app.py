@@ -1,5 +1,5 @@
 from flask import Flask, blueprints, request, render_template, session, url_for, redirect, flash, send_file, \
-    make_response
+    make_response, abort
 from flask_socketio import SocketIO, send, emit, join_room, leave_room
 import bcrypt
 import re
@@ -188,8 +188,10 @@ def account():
     else:
         profile_pic = f"static/profile_pics/pic_{session['id']}"
 
+    contests = DBoperations.takeContestsByUid(session['id'])
+    print(contests)
     return render_template('account.html',
-                           profile_pic=profile_pic)
+                           profile_pic=profile_pic, contests=contests)
 
 
 @app.context_processor
@@ -488,13 +490,13 @@ def contest_list():
 # Заявка на контест
 @app.route('/applyToContest/<contid>')
 def applyToContest(contid):
-    if not DBoperations.isUserInContests(session['id']):
+    if not DBoperations.isUserInContest(session['id'], contid):
         DBoperations.addUserToContest(session['id'], contid)
-        flash('Вы успешно зарегистрировались!')
+        flash('Вы успешно приняли вызов!')
     else:
-        print("ERROR")
-        flash('Вы уже участвуете!', 'error')
+        flash('Вы уже участник этого поединка!', 'error')
         return redirect(url_for('contest_list'))
+
     emit('message', 'applied_to_contest', broadcast=True, namespace="/")
     return redirect(url_for('contest_list'))
 
@@ -504,12 +506,8 @@ def applyToContest(contid):
 def create_contest():
     if isLoggedin():
         return redirect(url_for('login'))
-    if not DBoperations.isUserInContests(session['id']):
-        subjects = DBoperations.listSubjects()
-        return render_template('create_contest.html', subjects=subjects)
-    else:
-        flash('Вы уже участвуете!')
-        return redirect(url_for('contest_list'))
+    subjects = DBoperations.listSubjects()
+    return render_template('create_contest.html', subjects=subjects)
 
 
 # Функция для обработки создания соревнования
@@ -547,6 +545,22 @@ def post_new_contest():
     except Exception as e:
         flash(f'Произошла ошибка при создании соревнования: {str(e)}', 'error')
         return redirect(url_for('contest_list'))
+
+
+@app.route("/contest/<contid>", methods=['GET'])
+def contest(contid):
+    tasks_ids = DBoperations.takeTasksById(contid)
+    if not tasks_ids:
+        flash("Ошибка при загрузке заданий!")
+        print(tasks_ids)
+        abort(500)
+    tasklist = list(map(int, tasks_ids[0].split(',')))
+    print(tasklist)
+    tasks = {}
+    for task in DBoperations.getTasksForContest(tasklist):
+        tasks.update({task[0]: task})
+    print(tasks)
+    return render_template('contest.html', contid=contid, tasks=tasks, tasklist=tasklist)
 
 
 if __name__ == '__main__':

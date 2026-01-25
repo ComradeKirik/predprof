@@ -73,22 +73,6 @@ PRIMARY KEY(player_id)
         REFERENCES tasks (id)
     )
     """)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS task_in_process(
-    user_id INT NOT NULL,
-    task_id INT NOT NULL,
-    is_hinted BOOLEAN DEFAULT FALSE,
-    started_at TIMESTAMP  DEFAULT CURRENT_TIMESTAMP,
-    ended_at TIMESTAMP  DEFAULT NULL,
-    PRIMARY KEY (user_id, task_id),
-    CONSTRAINT fk_user_solved
-        FOREIGN KEY (user_id) 
-        REFERENCES registered_players (player_id),
-    CONSTRAINT fk_task_solved
-        FOREIGN KEY (task_id) 
-        REFERENCES tasks (id)
-    )
-    """)
     # u1 - тот, кто вызвал на поединок(или создал его, не является админом)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS contests(
@@ -116,9 +100,29 @@ PRIMARY KEY(player_id)
         )
         """)
     cursor.execute("""
+        CREATE TABLE IF NOT EXISTS task_in_process(
+        user_id INT NOT NULL,
+        task_id INT NOT NULL,
+        is_hinted BOOLEAN DEFAULT FALSE,
+        started_at TIMESTAMP  DEFAULT CURRENT_TIMESTAMP,
+        ended_at TIMESTAMP  DEFAULT NULL,
+        contest_id INT DEFAULT NULL,
+        PRIMARY KEY (user_id, task_id),
+        CONSTRAINT fk_user_solved
+            FOREIGN KEY (user_id) 
+            REFERENCES registered_players (player_id),
+        CONSTRAINT fk_task_solved
+            FOREIGN KEY (task_id) 
+            REFERENCES tasks (id),
+        CONSTRAINT fk_contest_id
+            FOREIGN KEY (contest_id) 
+            REFERENCES contests (id)
+        )
+    """)
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS contest_tasks(
         contest_id INT NOT NULL,
-        tasks_id TEXT NOT NULL,
+        tasks_ids TEXT NOT NULL,
         CONSTRAINT fk_contest_id
             FOREIGN KEY (contest_id)
             REFERENCES contests (id)
@@ -138,6 +142,9 @@ PRIMARY KEY(player_id)
     if not cursor.fetchone():
         cursor.execute(
             "INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES ('Математика', 'Легкая', 'Квадратные уравнения', '47F947', 1, 1, '{\"desc\":\"В треугольнике ABC...\", \"hint\":\"Впишите ответ\", \"answer\":\"14,5\"}')")
+        cursor.execute(
+            "INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES ('Математика', 'Легкая', 'Квадратные неравенства', '4AD198', 1, 1, '{\"desc\":\"В треугольнике ABC...\", \"hint\":\"Впишите ответ\", \"answer\":\"14,5\"}')")
+
         cursor.execute(
             "INSERT INTO tasks(subject, complexity, theme, name, user_created, user_updated, task) VALUES ('Физика', 'Сложная', 'Термодинамика', '67A967', 1, 1, '{\"desc\":\"В треугольнике ABC...\", \"hint\":\"Впишите ответ\", \"answer\":\"14,5\"}')")
         conn.commit()
@@ -429,6 +436,14 @@ def createNewContest(data: dict, user1=None):
 
         contest_id = cursor.fetchone()[0]
         conn.commit()
+        # Наполнение таблицы заданий
+        cursor.execute(
+            "SELECT id FROM tasks WHERE subject = %s AND complexity = %s ORDER BY random() LIMIT %s", \
+            (contest_data['subject'], contest_data['complexity'], 5))
+        tasks = cursor.fetchall()
+        task_ids = ','.join(list(map(lambda x: str(x[0]), tasks)))
+        cursor.execute("INSERT INTO contest_tasks VALUES(%s, %s)", (contest_id, task_ids))
+        conn.commit()
         return contest_id
 
     except ValueError as e:
@@ -449,9 +464,32 @@ def createNewContest(data: dict, user1=None):
             conn.rollback()
         raise
 
-def isUserInContests(userid):
-    cursor.execute("SELECT * FROM CONTESTS WHERE user_1 = %s OR user_2 = %s", (userid, userid,))
+
+def isUserInContest(userid, contid):
+    cursor.execute("SELECT user_1 FROM CONTESTS WHERE id=%s AND (user_1 = %s OR user_2 = %s)",
+                   (contid, userid, userid,))
     return cursor.fetchone()
+
+
 def addUserToContest(userid, contid):
     cursor.execute("UPDATE contests SET user_2 = %s, u2_accepted = true WHERE id = %s", (userid, contid,))
     conn.commit()
+
+
+# Просмотреть все соревнования, в которых участвовал пользователь
+def takeContestsByUid(userid):
+    cursor.execute("SELECT * FROM contests WHERE user_1 = %s OR user_2 = %s", (userid, userid,))
+    return cursor.fetchall()
+
+
+def isUserInvited(userid):
+    cursor.execute("SELECT user_2, u2_accepted FROM contests WHERE user_2 = %s", (userid,))
+    return cursor.fetchall()
+
+def takeTasksById(contid):
+    cursor.execute("SELECT tasks_ids FROM contest_tasks WHERE contest_id = %s", (contid,))
+    return cursor.fetchone()
+
+def getTasksForContest(tasklist):
+    cursor.execute("SELECT * FROM tasks WHERE id IN %(l)s", {'l': tuple(tasklist)})
+    return cursor.fetchall()
