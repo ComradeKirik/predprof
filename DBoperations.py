@@ -65,6 +65,7 @@ PRIMARY KEY(player_id)
     task_id INT NOT NULL,
     solved_at DATE NOT NULL DEFAULT CURRENT_DATE,
     is_right BOOLEAN,
+    contest_id INT DEFAULT NULL,
     CONSTRAINT fk_user_solved
         FOREIGN KEY (user_id) 
         REFERENCES registered_players (player_id),
@@ -250,9 +251,9 @@ def getSolvation(taskid):
     return task['answer']
 
 
-def setSolvation(taskid, userid, isright):
-    cursor.execute("INSERT INTO solved_tasks(user_id, task_id, is_right) VALUES (%s, %s, %s)", \
-                   (userid, taskid, isright))
+def setSolvation(taskid, userid, isright, contid=None):
+    cursor.execute("INSERT INTO solved_tasks(user_id, task_id, is_right, contest_id) VALUES (%s, %s, %s, %s)", \
+                   (userid, taskid, isright, contid))
     conn.commit()
     """CREATE TABLE IF NOT EXISTS solved_tasks(
     user_id INT NOT NULL,
@@ -276,26 +277,33 @@ def solvedTasksBy(userid, taskid):
     return False
 
 
-def howSolved(userid, taskid):
-    cursor.execute("SELECT is_right FROM solved_tasks WHERE user_id = %s AND task_id = %s", (userid, taskid,))
-    return cursor.fetchone()[0]
+def howSolved(userid, taskid, contid=-1):
+    """if contid is None:
+        cursor.execute("SELECT is_right FROM solved_tasks WHERE user_id = %s AND task_id = %s AND contest_id IS NULL", (userid, taskid,))
+    else:
+        cursor.execute("SELECT is_right FROM solved_tasks WHERE user_id = %s AND task_id = %s AND contest_id = %s", (userid, taskid, contid,))"""
+    cursor.execute("SELECT is_right FROM solved_tasks WHERE user_id = %s AND task_id = %s AND coalesce(contest_id, -1) = %s",  (userid, taskid, contid,))
+    result = cursor.fetchone()
+    if result is None:
+        return None
+    return result[0]
 
 
-def isSolved(userid, taskid):
-    cursor.execute("SELECT * FROM solved_tasks WHERE user_id = %s AND task_id = %s", (userid, taskid,))
+def isSolved(userid, taskid, contid=None):
+    cursor.execute("SELECT * FROM solved_tasks WHERE user_id = %s AND task_id = %s AND contest_id = %s", (userid, taskid, contid))
     if cursor.fetchone():
         return True
     return False
 
 
-def startSolving(userid, taskid):
+def startSolving(userid, taskid, contid=None):
     cursor.execute(
         "INSERT INTO task_in_process(user_id, task_id) VALUES(%s, %s) ON CONFLICT(user_id, task_id) DO NOTHING",
         (userid, taskid))
     conn.commit()
 
 
-def setSolvationTime(taskid, userid):
+def setSolvationTime(taskid, userid, contid=None):
     cursor.execute("UPDATE task_in_process SET ended_at = CURRENT_TIMESTAMP WHERE task_id = %s AND user_id = %s ",
                    (taskid, userid))
     conn.commit()

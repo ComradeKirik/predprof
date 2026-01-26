@@ -4,7 +4,7 @@
     {% for taskid in tasklist %}
     {% set task = tasks[taskid] %}
     <div class="wrapperFake">
-        <a href="{{ url_for('solve_task', taskid=task['id']) }}">
+        <a href="{{ url_for('solveContestTask', taskid=task['id'], contid=contid) }}" methods="POST">
             <div class="dashboard-card">
                 <h3>{{ task['name'] }}</h3><br>
                 Предмет: {{ task['subject'] }}<br>
@@ -17,16 +17,11 @@
     <br>
     <br>
 </section>
-<!--<script>
+<script>
     socket.on('message', function(data) {
+    console.log("----")
     console.log(data)
-    if (['update_task', 'post_new_task'].includes(data)){
-    console.log('True')
-        location.reload();
-    }else{
-    console.log('False')
-    }
     //location.reload(); // Перезагружаем страницу
 });
-</script>-->
+</script>
 {% include 'footer_lk_template.html' %}
