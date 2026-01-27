@@ -369,3 +369,9 @@ def listContests():
 
 def takeUserNameById(userid):
     cursor.execute("SELECT player_name FROM registered_players WHERE id = %s", (userid,))
+
+
+def getLeaderboard():
+    """Получить рейтинг игроков, отсортированный по очкам"""
+    cursor.execute("SELECT player_name, player_score FROM registered_players ORDER BY player_score DESC")
+    return cursor.fetchall()

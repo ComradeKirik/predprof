@@ -77,7 +77,7 @@ def mainpage():
 
 
 @app.errorhandler(404)
-def page_not_found():
+def page_not_found(e):
     return render_template('404.html'), 404
 
 
@@ -486,6 +486,14 @@ def contest_list():
 # ... создается новый контест
 
 
+@app.route('/leaderboard')
+def leaderboard():
+    """Страница рейтинга игроков"""
+    players = DBoperations.getLeaderboard()
+    return render_template('leaderboard.html', players=players)
+
+
 if __name__ == '__main__':
+
     # app.run(debug=True, host="0.0.0.0", port=5000)
     socketio.run(app, debug=True, host="0.0.0.0", port=5000, allow_unsafe_werkzeug=True)
