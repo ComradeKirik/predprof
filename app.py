@@ -178,6 +178,7 @@ def tasks():
 
 @app.route("/account")
 def account():
+    DBoperations.checkContestExpiration()
     if isLoggedin():
         return redirect(url_for('login'))
     # Фото профиля
@@ -479,12 +480,14 @@ def import_task():
 
 @app.route('/contests')
 def contest_list():
+    DBoperations.checkContestExpiration()
     if isLoggedin():
         return redirect(url_for('login'))
     contests = DBoperations.listContests()
+    unexpired_contests = DBoperations.listUnexpiredContests()
     if not contests:
         return render_template('contest_list.html', contests=['Соревнования отсутствуют'])
-    return render_template('contest_list.html', contests=contests)
+    return render_template('contest_list.html', contests=unexpired_contests)
 
 
 # Заявка на контест
@@ -519,7 +522,6 @@ def post_new_contest():
         data = {
             'subject': request.form.get('subject', '').strip(),
             'complexity': request.form.get('complexity'),
-            'can_reanswer': request.form.get('can_reanswer') == 'on',
             'started_at': request.form.get('started_at'),
             'ending_at': request.form.get('ending_at'),
             'user_2': request.form.get('user_2') or None,
@@ -552,26 +554,30 @@ def contest(contid):
     if isLoggedin():
         return url_for('login')
     userid = session['id']
-    try:
-        # Достаем таски
-        opponent_id = DBoperations.getEnemy(contid, userid)
-        tasks_ids = DBoperations.takeTasksById(contid)
-        if not tasks_ids:
-            flash("Ошибка при загрузке заданий!")
-            print(tasks_ids)
-            abort(500)
-        tasklist = list(map(int, tasks_ids[0].split(',')))
-        tasks = {}
-        for task in DBoperations.getTasksForContest(tasklist):
-            tasks.update({task[0]: task})
+    if not DBoperations.isContestExpired(contid):
+        try:
+            # Достаем таски
+            opponent_id = DBoperations.getEnemy(contid, userid)
+            tasks_ids = DBoperations.takeTasksById(contid)
+            if not tasks_ids:
+                flash("Ошибка при загрузке заданий!")
+                print(tasks_ids)
+                abort(500)
+            tasklist = list(map(int, tasks_ids[0].split(',')))
+            tasks = {}
+            for task in DBoperations.getTasksForContest(tasklist):
+                tasks.update({task[0]: task})
 
-        # Достаем айдишники
-        player_solved = DBoperations.hasTaskSolvedByInContest(userid, contid)
-        opponent_solved = DBoperations.hasTaskSolvedByInContest(opponent_id, contid)
-        return render_template('contest.html', contid=contid, tasks=tasks, tasklist=tasklist, player_solved=player_solved,
-                               opponent_solved=opponent_solved)
-    except ValueError:
-        flash('Вы не можете смотреть соревнование, пока нет второго игрока!')
+            # Достаем айдишники
+            player_solved = DBoperations.hasTaskSolvedByInContest(userid, contid)
+            opponent_solved = DBoperations.hasTaskSolvedByInContest(opponent_id, contid)
+            return render_template('contest.html', contid=contid, tasks=tasks, tasklist=tasklist, player_solved=player_solved,
+                                   opponent_solved=opponent_solved)
+        except ValueError:
+            flash('Вы не можете смотреть соревнование, пока нет второго игрока!')
+            return redirect(url_for('account'))
+    else:
+        flash("Это соревнование окончено!")
         return redirect(url_for('account'))
 
 

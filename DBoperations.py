@@ -80,7 +80,6 @@ PRIMARY KEY(player_id)
         id SERIAL PRIMARY KEY,
         subject TEXT NOT NULL,
         complexity TEXT NOT NULL,
-        can_reanswer BOOLEAN,
         started_at TIMESTAMP(0) DEFAULT CURRENT_TIMESTAMP,
         ending_at TIMESTAMP(0) DEFAULT NULL,
         user_1 INT NOT NULL,
@@ -152,7 +151,7 @@ PRIMARY KEY(player_id)
     cursor.execute("SELECT * FROM contests")
     if not cursor.fetchone():
         cursor.execute(
-            "INSERT INTO contests(subject, complexity, can_reanswer, started_at, ending_at, user_1, user_2, u1_result, u2_result, winner, status, u1_accepted, u2_accepted) VALUES ('Математика', 'Легкая', true, now() - interval '3 hours', now(), 2, 3, 10, 12, 3, 'Окончено', true, true)")
+            "INSERT INTO contests(subject, complexity, can_reanswer, started_at, ending_at, user_1, user_2, u1_result, u2_result, winner, status, u1_accepted, u2_accepted) VALUES ('Математика', 'Легкая', now() - interval '3 hours', now(), 2, 3, 10, 12, 3, 'Окончено', true, true)")
         conn.commit()
 
 
@@ -373,6 +372,14 @@ def listContests():
     return cursor.fetchall()
 
 
+def listUnexpiredContests():
+    query = """
+        SELECT * FROM contests WHERE status != 'Окончено'
+    """
+    cursor.execute(query)
+    return cursor.fetchall()
+
+
 def takeUserNameById(userid):
     cursor.execute("SELECT player_name FROM registered_players WHERE id = %s", (userid,))
 
@@ -405,7 +412,6 @@ def createNewContest(data: dict, user1=None):
         if started_datetime >= ended_datetime:
             raise ValueError("Время начала должно быть раньше времени окончания")
 
-        can_reanswer = bool(data.get('can_reanswer'))
         u1_accepted = bool(data.get('u1_accepted', True))
 
         # Валидация user_2 (опционально)
@@ -420,7 +426,6 @@ def createNewContest(data: dict, user1=None):
         contest_data = {
             'subject': data['subject'].strip(),
             'complexity': data['complexity'],
-            'can_reanswer': can_reanswer,
             'started_at': started_datetime,
             'ending_at': ended_datetime,
             'user_1': user1,
@@ -430,13 +435,12 @@ def createNewContest(data: dict, user1=None):
 
         cursor.execute(
             """INSERT INTO contests 
-            (subject, complexity, can_reanswer, started_at, ending_at, 
+            (subject, complexity, started_at, ending_at, 
              user_1, user_2, u1_accepted, status) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id""",
             (contest_data['subject'],
              contest_data['complexity'],
-             contest_data['can_reanswer'],
              contest_data['started_at'],
              contest_data['ending_at'],
              contest_data['user_1'],
@@ -521,3 +525,22 @@ def hasTaskSolvedByInContest(userid, contid):
                    (userid, contid))
     result = dict(cursor.fetchall())
     return result
+
+
+def checkContestExpiration():
+    now = datetime.now().replace(microsecond=0)
+    query = """
+                UPDATE contests 
+                SET status = 'Окончено' 
+                WHERE status != 'Окончено' 
+                AND ending_at <= %s
+            """
+    cursor.execute(query, (now,))
+    conn.commit()
+
+
+def isContestExpired(contid):
+    cursor.execute("SELECT status FROM contests WHERE id = %s", (contid,))
+    if cursor.fetchone()[0] == "Окончено":
+        return True
+    return False

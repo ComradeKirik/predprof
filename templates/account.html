@@ -86,6 +86,7 @@
 
             <div class="contest-footer">
                 <span class="timestamp">Начало: {{ contest['started_at'].strftime('%H:%M') }}</span><br>
+                <span class="timestamp">Окончание: {{ contest['ending_at'].strftime('%H:%M') }}</span><br>
                 <a href="{{ url_for('contest', contid=contest['id']) }}"><button class="btn btn-gold">Подробнее</button></a>
             </div>
         </div>
