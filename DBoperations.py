@@ -282,7 +282,9 @@ def howSolved(userid, taskid, contid=-1):
         cursor.execute("SELECT is_right FROM solved_tasks WHERE user_id = %s AND task_id = %s AND contest_id IS NULL", (userid, taskid,))
     else:
         cursor.execute("SELECT is_right FROM solved_tasks WHERE user_id = %s AND task_id = %s AND contest_id = %s", (userid, taskid, contid,))"""
-    cursor.execute("SELECT is_right FROM solved_tasks WHERE user_id = %s AND task_id = %s AND coalesce(contest_id, -1) = %s",  (userid, taskid, contid,))
+    cursor.execute(
+        "SELECT is_right FROM solved_tasks WHERE user_id = %s AND task_id = %s AND coalesce(contest_id, -1) = %s",
+        (userid, taskid, contid,))
     result = cursor.fetchone()
     if result is None:
         return None
@@ -290,7 +292,8 @@ def howSolved(userid, taskid, contid=-1):
 
 
 def isSolved(userid, taskid, contid=None):
-    cursor.execute("SELECT * FROM solved_tasks WHERE user_id = %s AND task_id = %s AND contest_id = %s", (userid, taskid, contid))
+    cursor.execute("SELECT * FROM solved_tasks WHERE user_id = %s AND task_id = %s AND contest_id = %s",
+                   (userid, taskid, contid))
     if cursor.fetchone():
         return True
     return False
@@ -494,10 +497,27 @@ def isUserInvited(userid):
     cursor.execute("SELECT user_2, u2_accepted FROM contests WHERE user_2 = %s", (userid,))
     return cursor.fetchall()
 
+
 def takeTasksById(contid):
     cursor.execute("SELECT tasks_ids FROM contest_tasks WHERE contest_id = %s", (contid,))
     return cursor.fetchone()
 
+
 def getTasksForContest(tasklist):
     cursor.execute("SELECT * FROM tasks WHERE id IN %(l)s", {'l': tuple(tasklist)})
     return cursor.fetchall()
+
+
+# Получает айди противника в контесте
+def getEnemy(contid, userid):
+    cursor.execute("SELECT (user_1, user_2) FROM contests WHERE id = %s", (contid,))
+    res = list(map(int, cursor.fetchone()[0].strip('()').split(',')))
+    res.remove(userid)
+    return res[0]
+
+
+def hasTaskSolvedByInContest(userid, contid):
+    cursor.execute("SELECT task_id, is_right FROM solved_tasks WHERE user_id = %s AND contest_id = %s",
+                   (userid, contid))
+    result = dict(cursor.fetchall())
+    return result

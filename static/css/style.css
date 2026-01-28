@@ -291,3 +291,23 @@ color: black;
 color: black;
 font-size: 20px;
 }
+
+table.contest-table{
+	width: 25%;
+	border-collapse:collapse;
+	border-spacing:0;
+	height: auto;
+}
+table.contest-table,table.contest-table td, table.contest-table th {
+	border: 1px solid #595959;
+}
+table.contest-table td,table.contest-table th {
+	padding: 1px;
+	width: 10px;
+	height: 35px;
+}
+table.contest-table th {
+	    background: #4e6982;
+	color: #fff;
+	font-weight: normal;
+}

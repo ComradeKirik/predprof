@@ -549,18 +549,28 @@ def post_new_contest():
 
 @app.route("/contest/<contid>", methods=['GET'])
 def contest(contid):
+    if isLoggedin():
+        return url_for('login')
+    userid = session['id']
+
+    # Достаем таски
+    opponent_id = DBoperations.getEnemy(contid, userid)
     tasks_ids = DBoperations.takeTasksById(contid)
     if not tasks_ids:
         flash("Ошибка при загрузке заданий!")
         print(tasks_ids)
         abort(500)
     tasklist = list(map(int, tasks_ids[0].split(',')))
-    print(tasklist)
     tasks = {}
     for task in DBoperations.getTasksForContest(tasklist):
         tasks.update({task[0]: task})
-    print(tasks)
-    return render_template('contest.html', contid=contid, tasks=tasks, tasklist=tasklist)
+
+    # Достаем айдишники
+    player_solved = DBoperations.hasTaskSolvedByInContest(userid, contid)
+    opponent_solved = DBoperations.hasTaskSolvedByInContest(opponent_id, contid)
+    return render_template('contest.html', contid=contid, tasks=tasks, tasklist=tasklist, player_solved=player_solved,
+                           opponent_solved=opponent_solved)
+
 
 # Решение таски в соревновании
 @app.route("/contest/<contid>/task/<taskid>", methods=['GET', 'POST'])
@@ -606,21 +616,20 @@ def solveContestTask(contid, taskid):
                                contid=contid
                                )
 
-
     if request.method == "POST":
         sent_answer = request.form.get('answer')
-        emit('message', {'action':'task_solvation', 'contest_id':contid}, broadcast=True, namespace="/")
+        emit('message', {'action': 'task_solvation', 'contest_id': contid}, broadcast=True, namespace="/")
         if sent_answer == "" or sent_answer == " ":
             msg = "Поле ответа не может быть пустым!"
         else:
             DBoperations.setSolvationTime(taskid, session['id'], contid)
+            emit('message', 'task_solved', broadcast=True, namespace="/")
             if right_answer == sent_answer:
                 msg = "Задание решено верно!"
                 DBoperations.setSolvation(taskid, session['id'], True, contid)
             else:
                 DBoperations.setSolvation(taskid, session['id'], False, contid)
                 msg = f"Задание решено неверно!"
-
 
 
         return render_template('solve_contest_task.html',

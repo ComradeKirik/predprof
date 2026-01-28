@@ -1,27 +1,84 @@
 {% include 'header_lk_template.html' %}
 <section class="dashboard-card">
-    <h2>Задания поединка</h2><br>
-    {% for taskid in tasklist %}
-    {% set task = tasks[taskid] %}
-    <div class="wrapperFake">
-        <a href="{{ url_for('solveContestTask', taskid=task['id'], contid=contid) }}" methods="POST">
-            <div class="dashboard-card">
-                <h3>{{ task['name'] }}</h3><br>
-                Предмет: {{ task['subject'] }}<br>
-                Тема: {{ task['theme'] }}<br>
-                Сложность: {{ task['complexity'] }}
-            </div>
-        </a>
+    <h2>Поединок {{ contid }}</h2><br>
+    <div class="dashboard-card">
+        <h2>Прогресс</h2>
+
+        <table class="contest-table">
+            <tr>
+                <th></th>
+                {% for taskid in tasklist %}
+                <th>Задача {{ loop.index }}</th>
+                {% endfor %}
+            </tr>
+            <!-- Ряд игрока -->
+            <tr>
+                <td><strong>Вы</strong></td>
+                {% for taskid in tasklist %}
+                <td>
+                    {% if taskid in player_solved %}
+                    {% if player_solved[taskid] %}
+                    <span style="color: green; font-weight: bold;">✔</span>
+                    {% else %}
+                    <span style="color: red; font-weight: bold;">✘</span>
+                    {% endif %}
+                    {% else %}
+                    <span style="color: gray;">—</span>
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td><strong>Противник</strong></td>
+                {% for taskid in tasklist %}
+                <td>
+                    {% if opponent_solved and taskid in opponent_solved %}
+                    {% if opponent_solved[taskid] %}
+                    <span style="color: green; font-weight: bold;">✔</span>
+                    {% else %}
+                    <span style="color: red; font-weight: bold;">✘</span>
+                    {% endif %}
+                    {% else %}
+                    <span style="color: gray;">—</span>
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+        </table>
     </div>
-    {% endfor %}
-    <br>
-    <br>
+    <div class="dashboard-card">
+        <h2>Задачи</h2>
+        {% for taskid in tasklist %}
+        {% set task = tasks[taskid] %}
+        <div class="wrapperFake">
+            <a href="{{ url_for('solveContestTask', taskid=task['id'], contid=contid) }}" methods="POST">
+                <div class="dashboard-card">
+                    <h3>{{ task['name'] }}</h3><br>
+                    Предмет: {{ task['subject'] }}<br>
+                    Тема: {{ task['theme'] }}<br>
+                    Сложность: {{ task['complexity'] }}
+                    {% if task['id'] in player_solved and player_solved[task['id']] %}
+                    <div style="color: green">Вы решили эту задачу верно!</div>
+                    {% elif task['id'] in player_solved and not player_solved[task['id']] %}
+                    <div style="color: red">Вы решили эту задачу неверно!</div>
+                    {% endif %}
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+        <br>
+        <br>
+    </div>
 </section>
 <script>
     socket.on('message', function(data) {
-    console.log("----")
+    if (['task_solved'].includes(data)){
+    console.log('True')
+        location.reload();
+    }else{
+    console.log('False')
+    }
     console.log(data)
-    //location.reload(); // Перезагружаем страницу
 });
 </script>
 {% include 'footer_lk_template.html' %}
