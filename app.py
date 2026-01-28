@@ -552,24 +552,27 @@ def contest(contid):
     if isLoggedin():
         return url_for('login')
     userid = session['id']
+    try:
+        # Достаем таски
+        opponent_id = DBoperations.getEnemy(contid, userid)
+        tasks_ids = DBoperations.takeTasksById(contid)
+        if not tasks_ids:
+            flash("Ошибка при загрузке заданий!")
+            print(tasks_ids)
+            abort(500)
+        tasklist = list(map(int, tasks_ids[0].split(',')))
+        tasks = {}
+        for task in DBoperations.getTasksForContest(tasklist):
+            tasks.update({task[0]: task})
 
-    # Достаем таски
-    opponent_id = DBoperations.getEnemy(contid, userid)
-    tasks_ids = DBoperations.takeTasksById(contid)
-    if not tasks_ids:
-        flash("Ошибка при загрузке заданий!")
-        print(tasks_ids)
-        abort(500)
-    tasklist = list(map(int, tasks_ids[0].split(',')))
-    tasks = {}
-    for task in DBoperations.getTasksForContest(tasklist):
-        tasks.update({task[0]: task})
-
-    # Достаем айдишники
-    player_solved = DBoperations.hasTaskSolvedByInContest(userid, contid)
-    opponent_solved = DBoperations.hasTaskSolvedByInContest(opponent_id, contid)
-    return render_template('contest.html', contid=contid, tasks=tasks, tasklist=tasklist, player_solved=player_solved,
-                           opponent_solved=opponent_solved)
+        # Достаем айдишники
+        player_solved = DBoperations.hasTaskSolvedByInContest(userid, contid)
+        opponent_solved = DBoperations.hasTaskSolvedByInContest(opponent_id, contid)
+        return render_template('contest.html', contid=contid, tasks=tasks, tasklist=tasklist, player_solved=player_solved,
+                               opponent_solved=opponent_solved)
+    except ValueError:
+        flash('Вы не можете смотреть соревнование, пока нет второго игрока!')
+        return redirect(url_for('account'))
 
 
 # Решение таски в соревновании
