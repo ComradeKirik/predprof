@@ -1,5 +1,5 @@
 from flask import Flask, blueprints, request, render_template, session, url_for, redirect, flash, send_file, \
-    make_response
+    make_response, abort
 from flask_socketio import SocketIO, send, emit, join_room, leave_room
 import bcrypt
 import re
@@ -178,6 +178,8 @@ def tasks():
 
 @app.route("/account")
 def account():
+    DBoperations.checkContestExpiration()
+    DBoperations.checkContestStart()
     if isLoggedin():
         return redirect(url_for('login'))
     # Фото профиля
@@ -187,8 +189,38 @@ def account():
         profile_pic = "static/profile_pics/generic_profile_picture.jpg"
     else:
         profile_pic = f"static/profile_pics/pic_{session['id']}"
+
+    contests = DBoperations.takeContestsByUid(session['id'])
+    print(contests)
     return render_template('account.html',
-                           profile_pic=profile_pic)
+                           profile_pic=profile_pic, contests=contests)
+
+@app.route('/delete-account', methods=['POST'])
+def delete_account():
+    username = request.form.get('confirm_username')
+    password = request.form.get('confirm_password')
+    account = DBoperations.loginUser(username, password)
+    if account:
+        DBoperations.deleteAccount(session['id'])
+        return redirect(url_for('logout'))
+    else:
+        flash('Введен некорректный никнейм или пароль!')
+        return redirect(url_for('account'))
+
+@app.route('/change-password', methods=["POST"])
+def change_password():
+    id = session['id']
+    old_password = request.form.get('old_password')
+    new_password = request.form.get('new_password')
+    account = DBoperations.loginUser(session['username'], old_password)
+    if account:
+        password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt())
+        DBoperations.changePassword(id, password_hash)
+        flash("Пароль успешно изменен!")
+        return redirect(url_for('account'))
+    else:
+        flash("Введен неверный пароль!")
+        return redirect(url_for('account'))
 
 
 @app.context_processor
@@ -476,14 +508,192 @@ def import_task():
 
 @app.route('/contests')
 def contest_list():
+    DBoperations.checkContestExpiration()
+    DBoperations.checkContestStart()
+    if isLoggedin():
+        return redirect(url_for('login'))
     contests = DBoperations.listContests()
+    unexpired_contests = DBoperations.listUnexpiredContests()
     if not contests:
         return render_template('contest_list.html', contests=['Соревнования отсутствуют'])
-    return render_template('contest_list.html', contests=contests)
+    return render_template('contest_list.html', contests=unexpired_contests)
 
 
-# Для связывания вебсокета и котест_листа нужно реализовать создание контеста, чтобы оно обновлялось каждый раз когда
-# ... создается новый контест
+# Заявка на контест
+@app.route('/applyToContest/<contid>')
+def applyToContest(contid):
+    if not DBoperations.isUserInContest(session['id'], contid):
+        DBoperations.addUserToContest(session['id'], contid)
+        flash('Вы успешно приняли вызов!')
+    else:
+        flash('Вы уже участник этого поединка!', 'error')
+        return redirect(url_for('contest_list'))
+
+    emit('message', 'applied_to_contest', broadcast=True, namespace="/")
+    return redirect(url_for('contest_list'))
+
+
+# Функция для генерации страницы с созданием соревнования
+@app.route('/create_contest')
+def create_contest():
+    if isLoggedin():
+        return redirect(url_for('login'))
+    subjects = DBoperations.listSubjects()
+    return render_template('create_contest.html', subjects=subjects)
+
+
+# Функция для обработки создания соревнования
+@app.route("/post_new_contest", methods=['POST'])
+def post_new_contest():
+    if isLoggedin():
+        return redirect(url_for('login'))
+    try:
+        data = {
+            'subject': request.form.get('subject', '').strip(),
+            'complexity': request.form.get('complexity'),
+            'started_at': request.form.get('started_at'),
+            'ending_at': request.form.get('ending_at'),
+            'user_2': request.form.get('user_2') or None,
+            'u1_accepted': True
+        }
+
+        # Получаем ID текущего пользователя из сессии
+        user1_id = session.get('id')
+        if not user1_id:
+            flash('Пользователь не авторизован', 'error')
+            return redirect(url_for('login'))
+
+        contest_id = DBoperations.createNewContest(data, user1_id)
+
+        flash(f'Соревнование #{contest_id} успешно создано!', 'success')
+        emit('message', 'post_new_contest', broadcast=True, namespace="/")
+        return redirect(url_for('contest_list'))
+
+    except ValueError as e:
+        flash(f'Ошибка в данных: {str(e)}', 'error')
+        return redirect(url_for('create_contest'))
+
+    except Exception as e:
+        flash(f'Произошла ошибка при создании соревнования: {str(e)}', 'error')
+        return redirect(url_for('contest_list'))
+
+
+@app.route("/contest/<contid>", methods=['GET'])
+def contest(contid):
+    if isLoggedin():
+        return url_for('login')
+    userid = session['id']
+    if not DBoperations.isContestExpired(contid):
+        try:
+            # Достаем таски
+            opponent_id = DBoperations.getEnemy(contid, userid)
+            tasks_ids = DBoperations.takeTasksById(contid)
+            if not tasks_ids:
+                flash("Ошибка при загрузке заданий!")
+                print(tasks_ids)
+                abort(500)
+            tasklist = list(map(int, tasks_ids[0].split(',')))
+            tasks = {}
+            for task in DBoperations.getTasksForContest(tasklist):
+                tasks.update({task[0]: task})
+
+            # Достаем айдишники
+            player_solved = DBoperations.hasTaskSolvedByInContest(userid, contid)
+            opponent_solved = DBoperations.hasTaskSolvedByInContest(opponent_id, contid)
+            return render_template('contest.html', contid=contid, tasks=tasks, tasklist=tasklist,
+                                   player_solved=player_solved,
+                                   opponent_solved=opponent_solved)
+        except ValueError:
+            flash('Вы не можете смотреть соревнование, пока нет второго игрока!')
+            return redirect(url_for('account'))
+    else:
+        flash("Это соревнование окончено!")
+        return redirect(url_for('account'))
+
+
+# Решение таски в соревновании
+@app.route("/contest/<contid>/task/<taskid>", methods=['GET', 'POST'])
+def solveContestTask(contid, taskid):
+    if isLoggedin():
+        return redirect(url_for('login'))
+    if not DBoperations.isContestExpired(contid):
+        msg = ""
+        DBoperations.startSolving(session['id'], taskid, contid)
+        solvationStatus = ""
+        trigger = DBoperations.isSolved(session['id'], taskid,
+                                        contid)
+        taskInfo = DBoperations.getTask(taskid)
+        print(taskInfo)
+        task_name = taskInfo[4]
+        complexity = taskInfo[2]
+        theme = taskInfo[3]
+        text = json.loads(taskInfo[9])
+        description = text['desc']
+        right_answer = DBoperations.getSolvation(taskid)
+
+        try:
+            res = DBoperations.howSolved(session['id'], taskid, contid)
+            if res is None:
+                solvationStatus = "Задача еще не решена"
+            else:
+                if res:
+                    solvationStatus = f"<div class='solvedRight'>Задание решено верно</div>"
+                else:
+                    solvationStatus = f"<div class='solvedBad'>Задание решено неверно</div>"
+        except Exception as e:
+            print(e)
+            pass
+        if request.method == "GET":
+            return render_template('solve_contest_task.html',
+                                   taskid=taskid,
+                                   task_name=task_name,
+                                   complexity=complexity,
+                                   theme=theme,
+                                   description=description,
+                                   trigger=trigger,
+                                   solvationStatus=solvationStatus,
+                                   contid=contid
+                                   )
+
+        if request.method == "POST":
+            sent_answer = request.form.get('answer')
+            emit('message', {'action': 'task_solvation', 'contest_id': contid}, broadcast=True, namespace="/")
+            if sent_answer == "" or sent_answer == " ":
+                msg = "Поле ответа не может быть пустым!"
+            else:
+                DBoperations.setSolvationTime(taskid, session['id'], contid)
+                emit('message', 'task_solved', broadcast=True, namespace="/")
+                if right_answer == sent_answer:
+                    msg = "Задание решено верно!"
+                    DBoperations.setSolvation(taskid, session['id'], True, contid)
+                else:
+                    DBoperations.setSolvation(taskid, session['id'], False, contid)
+                    msg = f"Задание решено неверно!"
+
+            return render_template('solve_contest_task.html',
+                                   taskid=taskid,
+                                   task_name=task_name,
+                                   complexity=complexity,
+                                   theme=theme,
+                                   description=description,
+                                   msg=msg,
+                                   sent_answer=sent_answer,
+                                   trigger=trigger,
+                                   solvationStatus=solvationStatus,
+                                   contid=contid
+                                   )
+        else:
+            flash("Это соревнование еще не началось или уже окончено!")
+            return redirect(url_for('account'))
+
+
+@app.route('/admin-panel')
+def admin_panel():
+    if isLoggedin():
+        return redirect(url_for('login'))
+    if isAdministrator:
+        return redirect(url_for('login'))
+    return render_template('admin_panel.html')
 
 
 @app.route('/leaderboard')

@@ -1,17 +1,18 @@
 {% include 'header_lk_template.html' %}
 
 <section class="dashboard-card">
-    <h2>Соревнования</h2>
+    <h2>Соревнования</h2> <br><a href="{{ url_for('create_contest') }}"><button class="btn btn-gold">Создать вызов</button></a>
     {% for contest in contests %}
     <div class="wrapperFake">
         <div class="dashboard-card">
-            <h3>Соревнование {{ contest['id'] }}</h3>
-            <h4>{{ contest['user_1_name'] }} против {{ contest['user_2_name'] }}</h4><br>
+            <h3>Поединок {{ contest['id'] }}</h3>
+            <h4>{{ contest['user_1'] }} против {{ contest['user_2'] }}</h4><br>
             Предмет: {{ contest['subject'] }}<br>
             Сложность: {{ contest['complexity'] }}<br>
             Начало: {{ contest['started_at'] }}<br>
             Конец: {{ contest['ending_at'] }}<br>
             Статус: {{ contest['status'] }}<br>
+            {% if not contest['user_2'] %}<a href="{{ url_for('applyToContest', contid=contest['id']) }}"><button class="btn btn-gold">Принять вызов</button></a>{% endif %}
         </div>
     </div>
     {% endfor %}
@@ -19,7 +20,7 @@
 <script>
     socket.on('message', function(data) {
     console.log(data)
-    if (['update_task', 'post_new_task'].includes(data)){
+    if (['post_new_contest', 'applied_to_contest'].includes(data)){
     console.log('True')
         location.reload();
     }else{

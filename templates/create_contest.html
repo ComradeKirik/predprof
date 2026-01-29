@@ -1,0 +1,31 @@
+{% include 'header_lk_template.html' %}
+<section class="dashboard-card">
+    <h2>Новый вызов</h2><br>
+
+
+    <form action="{{ url_for('post_new_contest') }}" method="POST" enctype="multipart/form-data">
+        Предмет:
+        <select name="subject" id="id_subject">
+            {% for item in subjects %}
+            {% if item != "" %}
+            <option value="{{ item }}" {% if subject== item %}selected{% endif %}>
+                {{ item }}
+            </option>
+            {% endif %}
+            {% endfor %}
+        </select>
+
+        Сложность:<br>
+        <select name="complexity" id="complexity">
+            <option value="Легкая">Легко</option>
+            <option value="Средняя">Средне</option>
+            <option value="Сложная">Сложно</option>
+        </select><br>
+        Начало: <br><input id="started_at" type="time" name="started_at"/><br><h6>На сегодняшний день по МСК</h6>
+        Конец: <br><input id="ending_at" type="time" name="ending_at"/><br><h6>На сегодняшний день по МСК</h6><br>
+        <!--Пригласить пользователя: <br><input type="text" id="user_2" name="user_2"><br><h6>Оставьте пустым для
+        подбора</h6>-->
+        <button type="button" class="btn btn-gold" onclick="this.form.submit()" id="reloadButton">Сохранить</button>
+    </form>
+</section>
+{% include 'footer_lk_template.html' %}
