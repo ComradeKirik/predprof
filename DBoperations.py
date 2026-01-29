@@ -84,8 +84,8 @@ PRIMARY KEY(player_id)
         ending_at TIMESTAMP(0) DEFAULT NULL,
         user_1 INT NOT NULL,
         user_2 INT DEFAULT NULL,
-        u1_result TEXT,
-        u2_result TEXT,
+        u1_result INT DEFAULT 0,
+        u2_result INT DEFAULT 0,
         winner INT,
         status TEXT,
         u1_accepted BOOLEAN DEFAULT NULL,
@@ -311,22 +311,22 @@ def getSolvation(taskid):
 
 
 def setSolvation(taskid, userid, isright, contid=None):
-    cursor.execute("INSERT INTO solved_tasks(user_id, task_id, is_right, contest_id) VALUES (%s, %s, %s, %s)", \
-                   (userid, taskid, isright, contid))
-    conn.commit()
-    """CREATE TABLE IF NOT EXISTS solved_tasks(
-    user_id INT NOT NULL,
-    task_id INT NOT NULL,
-    solved_at DATE NOT NULL DEFAULT CURRENT_DATE,
-    is_right BOOLEAN,
-    CONSTRAINT fk_user_solved
-        FOREIGN KEY (user_id) 
-        REFERENCES registered_players (player_id),
-    CONSTRAINT fk_task_solved
-        FOREIGN KEY (task_id) 
-        REFERENCES tasks (id)
+    cursor.execute(
+        "INSERT INTO solved_tasks(user_id, task_id, is_right, contest_id) VALUES (%s, %s, %s, %s)",
+        (userid, taskid, isright, contid)
     )
-    """
+
+    if contid is not None:
+        cursor.execute(
+            "UPDATE contests SET u1_result = u1_result + %s WHERE id = %s AND user_1 = %s",
+            (int(isright), contid, userid)
+        )
+        cursor.execute(
+            "UPDATE contests SET u2_result = u2_result + %s WHERE id = %s AND user_2 = %s",
+            (int(isright), contid, userid)
+        )
+
+    conn.commit()
 
 
 def solvedTasksBy(userid, taskid):
@@ -591,22 +591,14 @@ def checkContestExpiration():
     now = datetime.now().replace(microsecond=0)
     query = """
                 UPDATE contests 
-                SET status = 'Окончено' 
-                WHERE status != 'Окончено' 
-                AND ending_at <= %s
+                SET status = CASE 
+                    WHEN ending_at <= %s THEN 'Окончено'
+                    WHEN starting_at <= %s THEN 'Идет'
+                    ELSE 'Еще не началось'
+                END
+                WHERE status != 'Окончено' OR ending_at > %s
             """
-    cursor.execute(query, (now,))
-    conn.commit()
-
-
-def checkContestStart():
-    now = datetime.now().replace(microsecond=0)
-    query = """
-        UPDATE contests 
-        SET status = 'Идет' 
-        WHERE status = 'Создано' AND started_at <= %s
-    """
-    cursor.execute(query, (now,))
+    cursor.execute(query, (now, now, now))
     conn.commit()
 
 
@@ -615,3 +607,63 @@ def isContestExpired(contid):
     if cursor.fetchone()[0] == "Окончено":
         return True
     return False
+
+
+def recalculateUsersScore(contid):
+    if not isContestExpired(contid):
+        return "Контест еще не завершен"
+
+    # Извлечение юзеров и очков
+    cursor.execute("""
+        SELECT user_1, user_2, u1_result, u2_result 
+        FROM contests WHERE id = %s
+    """, (contid,))
+    contest = cursor.fetchone()
+    if not contest or contest[1] is None:
+        return "Недостаточно данных (второй игрок не найден)"
+
+    u1_id, u2_id, u1_score, u2_score = contest
+    cursor.execute("SELECT player_score FROM registered_players WHERE player_id = %s", (u1_id,))
+    r1 = cursor.fetchone()[0]
+    cursor.execute("SELECT player_score FROM registered_players WHERE player_id = %s", (u2_id,))
+    r2 = cursor.fetchone()[0]
+    # Ожидаемые очки
+    e1 = get_expected(r1, r2)
+    e2 = get_expected(r2, r1)
+
+    # Фактический результат (S): 1 - победа, 0.5 - ничья, 0 - поражение
+    if u1_score > u2_score:
+        s1, s2 = 1, 0
+    elif u1_score < u2_score:
+        s1, s2 = 0, 1
+    else:
+        s1, s2 = 0.5, 0.5
+
+    # Расчет новых рейтингов
+    new_r1 = round(r1 + get_k(r1) * (s1 - e1))
+    new_r2 = round(r2 + get_k(r2) * (s2 - e2))
+
+    # Обновление данных
+    cursor.execute("UPDATE registered_players SET player_score = %s WHERE player_id = %s", (new_r1, u1_id))
+    cursor.execute("UPDATE registered_players SET player_score = %s WHERE player_id = %s", (new_r2, u2_id))
+
+    # Записываем в архив
+    for pid, score in [(u1_id, new_r1), (u2_id, new_r2)]:
+        cursor.execute("""
+            INSERT INTO score_archive (player_id, date, player_score)
+            VALUES (%s, CURRENT_DATE, %s)
+            ON CONFLICT (player_id, date) DO UPDATE SET player_score = EXCLUDED.player_score
+        """, (pid, score))
+
+    return True
+
+
+# Рейтинг Эло
+def get_expected(a_rating, b_rating):
+    return 1 / (1 + 10 ** ((b_rating - a_rating) / 400))
+
+
+def get_k(rating):
+    if rating >= 2400: return 10
+    if rating <= 1500: return 40
+    return 20
