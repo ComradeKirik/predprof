@@ -194,6 +194,61 @@ def daily_score_backup():
     conn.commit()
 
 
+def deleteAccount(userid):
+    try:
+        # 1. Сначала удаляем контесты, где пользователь является создателем (user_1)
+        cursor.execute("DELETE FROM contests WHERE user_1 = %s", (userid,))
+
+        # 2. Обновляем контесты, где пользователь является user_2 (ставим user_2 в NULL)
+        cursor.execute("""
+            UPDATE contests 
+            SET user_2 = NULL, 
+                u2_result = NULL,
+                u2_accepted = NULL,
+                status = CASE 
+                    WHEN status = 'active' AND user_1 IS NOT NULL THEN 'waiting' 
+                    ELSE status 
+                END
+            WHERE user_2 = %s
+        """, (userid,))
+
+        # 3. Обновляем задачи, где пользователь был создателем или обновителем
+        cursor.execute("""
+            UPDATE tasks 
+            SET user_created = NULL, 
+                user_updated = NULL 
+            WHERE user_created = %s OR user_updated = %s
+        """, (userid, userid))
+
+        # 4. Удаляем записи о решенных задачах пользователя
+        cursor.execute("DELETE FROM solved_tasks WHERE user_id = %s", (userid,))
+
+        # 5. Удаляем задачи в процессе решения
+        cursor.execute("DELETE FROM task_in_process WHERE user_id = %s", (userid,))
+
+        # 6. Удаляем историю очков
+        cursor.execute("DELETE FROM score_archive WHERE player_id = %s", (userid,))
+
+        # 7. Обновляем контесты, где пользователь является победителем
+        cursor.execute("""
+            UPDATE contests 
+            SET winner = NULL 
+            WHERE winner = %s
+        """, (userid,))
+
+        # 8. Наконец удаляем самого пользователя
+        cursor.execute("DELETE FROM registered_players WHERE player_id = %s", (userid,))
+
+        conn.commit()
+        print(f"Аккаунт пользователя {userid} успешно удален")
+        return True
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Ошибка при удалении аккаунта: {e}")
+        return False
+
+
 def takeScorebyDays(player_id: int):
     current_date = datetime.now().date()
     cursor.execute("SELECT date, player_score FROM score_archive WHERE player_id = %s AND date + 30 >= %s", \
@@ -535,6 +590,17 @@ def checkContestExpiration():
                 WHERE status != 'Окончено' 
                 AND ending_at <= %s
             """
+    cursor.execute(query, (now,))
+    conn.commit()
+
+
+def checkContestStart():
+    now = datetime.now().replace(microsecond=0)
+    query = """
+        UPDATE contests 
+        SET status = 'Идет' 
+        WHERE status = 'Создано' AND started_at <= %s
+    """
     cursor.execute(query, (now,))
     conn.commit()
 

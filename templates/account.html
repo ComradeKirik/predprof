@@ -24,6 +24,21 @@
 </script>
 {% endif %}
 {% endwith %}
+<script>
+function openModal(id) {
+    document.getElementById(id).style.display = "block";
+}
+function closeModal(id) {
+    document.getElementById(id).style.display = "none";
+}
+// Закрытие при клике вне окна
+window.onclick = function(event) {
+    if (event.target.className === 'modal') {
+        event.target.style.display = "none";
+    }
+}
+</script>
+
 
 <section class="dashboard-card">
     <table>
@@ -53,6 +68,13 @@
                         Сменить аватарку
                     </button>
                 </form>
+                <br>
+                <button type="button" onclick="openModal('passwordModal')" class="btn btn-gold">
+                    Сменить пароль
+                </button>
+                <button type="button" onclick="openModal('deleteModal')" class="btn btn-red">
+                    Удалить аккаунт
+                </button>
             </td>
         </tr>
     </table>
@@ -87,11 +109,42 @@
             <div class="contest-footer">
                 <span class="timestamp">Начало: {{ contest['started_at'].strftime('%H:%M') }}</span><br>
                 <span class="timestamp">Окончание: {{ contest['ending_at'].strftime('%H:%M') }}</span><br>
-                <a href="{{ url_for('contest', contid=contest['id']) }}"><button class="btn btn-gold">Подробнее</button></a>
+                <a href="{{ url_for('contest', contid=contest['id']) }}">
+                    <button class="btn btn-gold">Подробнее</button>
+                </a>
             </div>
         </div>
         {% endfor %}
     </div>
 </section>
+<!-- Модальное окно смены пароля -->
+<div id="passwordModal" class="modal">
+    <div class="modal-content">
+        <h3>Смена пароля</h3>
+        <form action="/change-password" method="POST">
+            <input type="password" name="old_password" placeholder="Старый пароль" required>
+            <input type="password" name="new_password" placeholder="Новый пароль" required>
+            <div class="modal-buttons">
+                <button type="submit" class="btn btn-gold">Сохранить</button>
+                <button type="button" onclick="closeModal('passwordModal')" class="btn">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
 
+<!-- Модальное окно удаления -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <h3 style="color: #ff4d4d;">Удаление аккаунта</h3>
+        <p>Для подтверждения введите данные:</p>
+        <form action="/delete-account" method="POST">
+            <input type="text" name="confirm_username" placeholder="Никнейм" required>
+            <input type="password" name="confirm_password" placeholder="Пароль" required>
+            <div class="modal-buttons">
+                <button type="submit" class="btn btn-red">Удалить навсегда</button>
+                <button type="button" onclick="closeModal('deleteModal')" class="btn">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% include 'footer_lk_template.html' %}

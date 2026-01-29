@@ -179,6 +179,7 @@ def tasks():
 @app.route("/account")
 def account():
     DBoperations.checkContestExpiration()
+    DBoperations.checkContestStart()
     if isLoggedin():
         return redirect(url_for('login'))
     # Фото профиля
@@ -194,6 +195,17 @@ def account():
     return render_template('account.html',
                            profile_pic=profile_pic, contests=contests)
 
+@app.route('/delete-account', methods=['POST'])
+def delete_account():
+    username = request.form.get('confirm_username')
+    password = request.form.get('confirm_password')
+    account = DBoperations.loginUser(username, password)
+    if account:
+        DBoperations.deleteAccount(session['id'])
+        return redirect(url_for('logout'))
+    else:
+        flash('Введен некорректный никнейм или пароль!')
+        return redirect(url_for('account'))
 
 @app.context_processor
 def inject_user_data():
@@ -481,6 +493,7 @@ def import_task():
 @app.route('/contests')
 def contest_list():
     DBoperations.checkContestExpiration()
+    DBoperations.checkContestStart()
     if isLoggedin():
         return redirect(url_for('login'))
     contests = DBoperations.listContests()
@@ -571,7 +584,8 @@ def contest(contid):
             # Достаем айдишники
             player_solved = DBoperations.hasTaskSolvedByInContest(userid, contid)
             opponent_solved = DBoperations.hasTaskSolvedByInContest(opponent_id, contid)
-            return render_template('contest.html', contid=contid, tasks=tasks, tasklist=tasklist, player_solved=player_solved,
+            return render_template('contest.html', contid=contid, tasks=tasks, tasklist=tasklist,
+                                   player_solved=player_solved,
                                    opponent_solved=opponent_solved)
         except ValueError:
             flash('Вы не можете смотреть соревнование, пока нет второго игрока!')
@@ -586,73 +600,84 @@ def contest(contid):
 def solveContestTask(contid, taskid):
     if isLoggedin():
         return redirect(url_for('login'))
+    if not DBoperations.isContestExpired(contid):
+        msg = ""
+        DBoperations.startSolving(session['id'], taskid, contid)
+        solvationStatus = ""
+        trigger = DBoperations.isSolved(session['id'], taskid,
+                                        contid)
+        taskInfo = DBoperations.getTask(taskid)
+        print(taskInfo)
+        task_name = taskInfo[4]
+        complexity = taskInfo[2]
+        theme = taskInfo[3]
+        text = json.loads(taskInfo[9])
+        description = text['desc']
+        right_answer = DBoperations.getSolvation(taskid)
 
-    msg = ""
-    DBoperations.startSolving(session['id'], taskid, contid)
-    solvationStatus = ""
-    trigger = DBoperations.isSolved(session['id'], taskid,
-                                    contid)
-    taskInfo = DBoperations.getTask(taskid)
-    print(taskInfo)
-    task_name = taskInfo[4]
-    complexity = taskInfo[2]
-    theme = taskInfo[3]
-    text = json.loads(taskInfo[9])
-    description = text['desc']
-    right_answer = DBoperations.getSolvation(taskid)
-
-    try:
-        res = DBoperations.howSolved(session['id'], taskid, contid)
-        if res is None:
-            solvationStatus = "Задача еще не решена"
-        else:
-            if res:
-                solvationStatus = f"<div class='solvedRight'>Задание решено верно</div>"
+        try:
+            res = DBoperations.howSolved(session['id'], taskid, contid)
+            if res is None:
+                solvationStatus = "Задача еще не решена"
             else:
-                solvationStatus = f"<div class='solvedBad'>Задание решено неверно</div>"
-    except Exception as e:
-        print(e)
-        pass
-    if request.method == "GET":
-        return render_template('solve_contest_task.html',
-                               taskid=taskid,
-                               task_name=task_name,
-                               complexity=complexity,
-                               theme=theme,
-                               description=description,
-                               trigger=trigger,
-                               solvationStatus=solvationStatus,
-                               contid=contid
-                               )
+                if res:
+                    solvationStatus = f"<div class='solvedRight'>Задание решено верно</div>"
+                else:
+                    solvationStatus = f"<div class='solvedBad'>Задание решено неверно</div>"
+        except Exception as e:
+            print(e)
+            pass
+        if request.method == "GET":
+            return render_template('solve_contest_task.html',
+                                   taskid=taskid,
+                                   task_name=task_name,
+                                   complexity=complexity,
+                                   theme=theme,
+                                   description=description,
+                                   trigger=trigger,
+                                   solvationStatus=solvationStatus,
+                                   contid=contid
+                                   )
 
-    if request.method == "POST":
-        sent_answer = request.form.get('answer')
-        emit('message', {'action': 'task_solvation', 'contest_id': contid}, broadcast=True, namespace="/")
-        if sent_answer == "" or sent_answer == " ":
-            msg = "Поле ответа не может быть пустым!"
-        else:
-            DBoperations.setSolvationTime(taskid, session['id'], contid)
-            emit('message', 'task_solved', broadcast=True, namespace="/")
-            if right_answer == sent_answer:
-                msg = "Задание решено верно!"
-                DBoperations.setSolvation(taskid, session['id'], True, contid)
+        if request.method == "POST":
+            sent_answer = request.form.get('answer')
+            emit('message', {'action': 'task_solvation', 'contest_id': contid}, broadcast=True, namespace="/")
+            if sent_answer == "" or sent_answer == " ":
+                msg = "Поле ответа не может быть пустым!"
             else:
-                DBoperations.setSolvation(taskid, session['id'], False, contid)
-                msg = f"Задание решено неверно!"
+                DBoperations.setSolvationTime(taskid, session['id'], contid)
+                emit('message', 'task_solved', broadcast=True, namespace="/")
+                if right_answer == sent_answer:
+                    msg = "Задание решено верно!"
+                    DBoperations.setSolvation(taskid, session['id'], True, contid)
+                else:
+                    DBoperations.setSolvation(taskid, session['id'], False, contid)
+                    msg = f"Задание решено неверно!"
+
+            return render_template('solve_contest_task.html',
+                                   taskid=taskid,
+                                   task_name=task_name,
+                                   complexity=complexity,
+                                   theme=theme,
+                                   description=description,
+                                   msg=msg,
+                                   sent_answer=sent_answer,
+                                   trigger=trigger,
+                                   solvationStatus=solvationStatus,
+                                   contid=contid
+                                   )
+        else:
+            flash("Это соревнование еще не началось или уже окончено!")
+            return redirect(url_for('account'))
 
 
-        return render_template('solve_contest_task.html',
-                               taskid=taskid,
-                               task_name=task_name,
-                               complexity=complexity,
-                               theme=theme,
-                               description=description,
-                               msg=msg,
-                               sent_answer=sent_answer,
-                               trigger=trigger,
-                               solvationStatus=solvationStatus,
-                               contid=contid
-                               )
+@app.route('/admin-panel')
+def admin_panel():
+    if isLoggedin():
+        return redirect(url_for('login'))
+    if isAdministrator:
+        return redirect(url_for('login'))
+    return render_template('admin_panel.html')
 
 
 if __name__ == '__main__':

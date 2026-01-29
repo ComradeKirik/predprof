@@ -5,6 +5,7 @@
         <a href="{{ url_for('dashboard') }}" class="sidebar-link">Прогресс</a>
         {% if session.adm %}
         <a href="{{ url_for('tasks') }}" , class="sidebar-link">Банк заданий</a>
+        <!--<a href="{{ url_for('admin_panel') }}" , class="sidebar-link">Админ-панель</a>-->
         {% else %}
         <a href="{{ url_for('choose_task') }}" , class="sidebar-link">Решать задания</a>
         {% endif %}
