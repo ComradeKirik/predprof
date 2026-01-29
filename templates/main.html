@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Example Olimpiad Prep</title>
+    <title>Predprof - Подготовка к олимпиадам</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -13,18 +13,19 @@
     <main>
         <section class="hero">
             <div class="hero-overlay">
-                <h1>Example</h1>
-                <p>You can prepare to any Olimpiad with us!</p>
+                <h1>Predprof</h1>
+                <p>🏆 Подготовка к олимпиадам нового уровня</p>
                 <div class="hero-btns">
-                    <a href="{{ url_for('register') }}"><button class="btn btn-gold">Register</button></a>
-                    <a href="{{ url_for('login') }}"><button class="btn btn-outline">Log in</button></a>
+                    <a href="{{ url_for('register') }}"><button class="btn btn-gold">Начать подготовку</button></a>
+                    <a href="{{ url_for('login') }}"><button class="btn btn-outline">Войти в аккаунт</button></a>
                 </div>
             </div>
         </section>
 
         <section class="content-section">
-            <p>We provide the best materials, mock exams, and community support to ensure you reach the podium. Don't leave your success to chance; train with the best mentors in the field.</p>
-            <a href="#" class="btn btn-start">Start preparing</a>
+            <h2 style="font-size: 2.2rem; margin-bottom: 30px; color: #1a2a6c;">Почему выбирают Predprof?</h2>
+            <p>Мы предоставляем лучшие материалы, тренировочные тесты и сообщество поддержки, чтобы помочь вам достичь пьедестала почета. Не рискуйте своим успехом — учитесь с лучшими менторами в области.</p>
+            <a href="#" class="btn btn-start">Начать подготовку</a>
         </section>
     </main>
 

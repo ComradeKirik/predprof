@@ -2,27 +2,29 @@
 
 {% with messages = get_flashed_messages() %}
   {% if messages %}
-    <div class="flash-messages" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+    <div class="flash-messages" style="position: fixed; top: 80px; right: 20px; z-index: 1000; max-width: 400px;">
       {% for message in messages %}
-        <div class="flash-message" style="background: #4CAF50; color: white; padding: 10px 20px; margin: 5px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-          {{ message }}
+        <div class="notification notification-success" style="animation: slideIn 0.3s ease;">
+          ✅ {{ message }}
         </div>
       {% endfor %}
     </div>
     <script>
       setTimeout(function() {
-        var messages = document.querySelectorAll('.flash-message');
+        var messages = document.querySelectorAll('.flash-messages');
         messages.forEach(function(msg) {
           msg.style.opacity = '0';
-          msg.style.transition = 'opacity 0.5s';
+          msg.style.transition = 'opacity 0.5s ease';
           setTimeout(function() {
             msg.parentNode.removeChild(msg);
           }, 500);
         });
-      }, 3000);
+      }, 4000);
     </script>
   {% endif %}
 {% endwith %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
 
     <div class="dashboard-container">
         {% include 'sidebar_menu.html' %}

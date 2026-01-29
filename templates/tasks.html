@@ -1,28 +1,50 @@
 {% include 'header_lk_template.html' %}
-            {% if session.adm %}
-            <section class="dashboard-card">
-                <h2>Банк заданий</h2><br>
-                    {% for task in tasklist %}
-                        <a style="color: black" href="{{ url_for('task', taskid=task['id']) }}">Задание: {{ task['name'] }}</a><br>
-                <a style="color: black" href="{{ url_for('download', taskid=task['id']) }}"><button class="btn btn-gold">Скачать задание</button></a><br>
-                    {% endfor %}
-                <br>
-                <br>
-                <a href="{{ url_for('new_task') }}"><button class="btn btn-gold">Новое задание</button></a>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
 
+{% if session.adm %}
+<section class="dashboard-card">
+    <h2>📚 Банк заданий</h2>
+    <p style="color: #666; margin-bottom: 30px;">Управляйте вашими заданиями</p>
+    
+    <div class="task-list">
+        {% for task in tasklist %}
+        <div class="task-card">
+            <h3>{{ task['name'] }}</h3>
+            <p>ID: <strong>#{{ task['id'] }}</strong></p>
+            <div class="task-meta">
+                <div class="task-meta-item">
+                    📅 <strong>{{ task.get('created', 'N/A') }}</strong>
+                </div>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <a href="{{ url_for('task', taskid=task['id']) }}" style="flex: 1;">
+                    <button class="btn btn-gold" style="width: 100%;">Просмотр</button>
+                </a>
+                <a href="{{ url_for('download', taskid=task['id']) }}" style="flex: 1;">
+                    <button class="btn btn-outline" style="width: 100%; color: #1a2a6c; border-color: #1a2a6c;">Скачать</button>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div style="margin-top: 40px;">
+        <a href="{{ url_for('new_task') }}">
+            <button class="btn btn-gold" style="font-size: 1.1rem;">✨ Создать новое задание</button>
+        </a>
+    </div>
+</section>
+{% endif %}
 
-            </section>
-            {% endif %}
 <script>
+    var socket = io();
     socket.on('message', function(data) {
-    console.log(data)
-    if (['update_task', 'post_new_task'].includes(data)){
-    console.log('True')
-        location.reload();
-    }else{
-    console.log('False')
-    }
-    //location.reload(); // Перезагружаем страницу
-});
+        console.log('Событие: ' + data)
+        if (['update_task', 'post_new_task'].includes(data)) {
+            console.log('Обновляем страницу...')
+            location.reload();
+        }
+    });
 </script>
+
 {% include 'footer_lk_template.html' %}

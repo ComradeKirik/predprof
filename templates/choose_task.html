@@ -1,82 +1,129 @@
 {% include 'header_lk_template.html' %}
-<section class="dashboard-card">
-    <form method="GET" action="{{ url_for('choose_task') }}">
-        <select name="subject">
-            {% for item in subjects %}
-            <option value="{{ item }}" {% if subject== item %}selected{% endif %}>
-                {{ item if item != "" else "Любой предмет" }}
-            </option>
-            {% endfor %}
-        </select>
-        <select name="complexity">
-            <option value="">Любая сложность</option>
-            <option value="Легкая" {% if complexity==
-            "Легкая" %} selected="selected"{% endif %}>Легко</option>
-            <option value="Средняя" {% if complexity==
-            "Средняя" %} selected="selected"{% endif %}>Средне</option>
-            <option value="Сложная" {% if complexity==
-            "Сложная" %} selected="selected"{% endif %}>Сложно</option>
-        </select>
-        <select name="theme">
-            <option value="">Любая тема</option>
-            <option value="Квадратные уравнения">Кв. уравнения</option>
-            <option value="Термодинамика">Термодинамика</option>
-        </select>
+<div class="page-header">
+    <h2>🏦 Банк заданий</h2>
+    <p class="text-muted">Выберите задачи для тренировки</p>
+</div>
 
-        <button type="submit">Применить</button>
+<div class="filter-section card-glass">
+    <form method="GET" action="{{ url_for('choose_task') }}" class="filter-form">
+        <div class="filter-group">
+            <label>Предмет</label>
+            <div class="select-wrapper">
+                <select name="subject" class="modern-select">
+                    {% for item in subjects %}
+                    <option value="{{ item }}" {% if subject==item %}selected{% endif %}>
+                        {{ item if item != "" else "Все предметы" }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="filter-group">
+            <label>Сложность</label>
+            <div class="select-wrapper">
+                <select name="complexity" class="modern-select">
+                    <option value="">Любая</option>
+                    <option value="Легкая" {% if complexity=="Легкая" %}selected{% endif %}>🟢 Легкая</option>
+                    <option value="Средняя" {% if complexity=="Средняя" %}selected{% endif %}>🟡 Средняя</option>
+                    <option value="Сложная" {% if complexity=="Сложная" %}selected{% endif %}>🔴 Сложная</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="filter-group">
+            <label>Тема</label>
+            <div class="select-wrapper">
+                <select name="theme" class="modern-select">
+                    <option value="">Все темы</option>
+                    <option value="Квадратные уравнения">📐 Кв. уравнения</option>
+                    <option value="Термодинамика">🌡️ Термодинамика</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-apply">Применить фильтры</button>
     </form>
-    <h2>Банк заданий</h2><br>
-    {% for task in tasklist %}
-    <div class="wrapperFake">
-        <a href="{{ url_for('solve_task', taskid=task['id']) }}">
-            <div class="dashboard-card">
-                <h3>{{ task['name'] }}</h3><br>
-                Предмет: {{ task['subject'] }}<br>
-                Тема: {{ task['theme'] }}<br>
-                Сложность: {{ task['complexity'] }}
+</div>
+
+<div class="tasks-container">
+    {% if tasklist %}
+    <h3 class="section-title">✨ Новые задачи</h3>
+    <div class="task-grid">
+        {% for task in tasklist %}
+        <a href="{{ url_for('solve_task', taskid=task['id']) }}" class="task-card-modern">
+            <div class="task-header">
+                <span class="task-id">#{{ task['name'] }}</span>
+                <span
+                    class="badge badge-{{ 'success' if task['complexity'] == 'Легкая' else 'warning' if task['complexity'] == 'Средняя' else 'danger' }}">{{
+                    task['complexity'] }}</span>
+            </div>
+            <h4 class="task-title">{{ task['theme'] }}</h4>
+            <div class="task-footer">
+                <span class="task-subject">📚 {{ task['subject'] }}</span>
+                <span class="task-arrow">→</span>
             </div>
         </a>
+        {% endfor %}
     </div>
-    {% endfor %}
-    {% for task in unsolved %}
-    <div class="wrapperFake">
-        <a href="{{ url_for('solve_task', taskid=task['id']) }}">
-            <div class="dashboard-card">
-                <h3>{{ task['name'] }}</h3><br>
-                Предмет: {{ task['subject'] }}<br>
-                Тема: {{ task['theme'] }}<br>
-                Сложность: {{ task['complexity'] }}<br>
-                <p class="solvedBad">Решено неверно!</p>
+    {% endif %}
+
+    {% if unsolved %}
+    <h3 class="section-title">⚠️ Требуют внимания</h3>
+    <div class="task-grid">
+        {% for task in unsolved %}
+        <a href="{{ url_for('solve_task', taskid=task['id']) }}" class="task-card-modern task-unsolved">
+            <div class="task-header">
+                <span class="task-id">#{{ task['name'] }}</span>
+                <span class="badge badge-danger">Ошибка</span>
+            </div>
+            <h4 class="task-title">{{ task['theme'] }}</h4>
+            <div class="task-footer">
+                <span class="task-subject">{{ task['subject'] }}</span>
+                <span class="task-status">Решено неверно</span>
             </div>
         </a>
+        {% endfor %}
     </div>
-    {% endfor %}
-    {% for task in solved %}
-    <div class="wrapperFake">
-        <a href="{{ url_for('solve_task', taskid=task['id']) }}">
-            <div class="dashboard-card">
-                <h3>{{ task['name'] }}</h3><br>
-                Предмет: {{ task['subject'] }}<br>
-                Тема: {{ task['theme'] }}<br>
-                Сложность: {{ task['complexity'] }}<br>
-                <p class="solvedRight">Решено верно!</p>
+    {% endif %}
+
+    {% if solved %}
+    <h3 class="section-title">✅ Решенные</h3>
+    <div class="task-grid">
+        {% for task in solved %}
+        <a href="{{ url_for('solve_task', taskid=task['id']) }}" class="task-card-modern task-solved">
+            <div class="task-header">
+                <span class="task-id">#{{ task['name'] }}</span>
+                <span class="badge badge-success">Решено</span>
+            </div>
+            <h4 class="task-title">{{ task['theme'] }}</h4>
+            <div class="task-footer">
+                <span class="task-subject">{{ task['subject'] }}</span>
+                <span class="task-status">Отлично!</span>
             </div>
         </a>
+        {% endfor %}
     </div>
-    {% endfor %}
-    <br>
-    <br>
-</section>
+    {% endif %}
+
+    {% if not tasklist and not unsolved and not solved %}
+    <div class="empty-state">
+        <div class="empty-icon">📂</div>
+        <h3>Задачи не найдены</h3>
+        <p>Попробуйте изменить параметры фильтрации</p>
+    </div>
+    {% endif %}
+</div>
 <script>
-    socket.on('message', function(data) {
-    console.log(data)
-    if (['update_task', 'post_new_task'].includes(data)){
-    console.log('True')
-        location.reload();
-    }else{
-    console.log('False')
-    }
-    //location.reload(); // Перезагружаем страницу
-});
+    socket.on('message', function (data) {
+        console.log(data)
+        if (['update_task', 'post_new_task'].includes(data)) {
+            console.log('True')
+            location.reload();
+        } else {
+            console.log('False')
+        }
+        //location.reload(); // Перезагружаем страницу
+    });
 </script>
 {% include 'footer_lk_template.html' %}
