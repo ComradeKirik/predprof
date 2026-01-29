@@ -249,6 +249,11 @@ def deleteAccount(userid):
         return False
 
 
+def changePassword(userid, new_password):
+    cursor.execute("UPDATE registered_players SET player_password = %s WHERE player_id = %s",
+                   (new_password.decode('utf-8'), userid))
+
+
 def takeScorebyDays(player_id: int):
     current_date = datetime.now().date()
     cursor.execute("SELECT date, player_score FROM score_archive WHERE player_id = %s AND date + 30 >= %s", \

@@ -207,6 +207,22 @@ def delete_account():
         flash('Введен некорректный никнейм или пароль!')
         return redirect(url_for('account'))
 
+@app.route('/change-password', methods=["POST"])
+def change_password():
+    id = session['id']
+    old_password = request.form.get('old_password')
+    new_password = request.form.get('new_password')
+    account = DBoperations.loginUser(session['username'], old_password)
+    if account:
+        password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt())
+        DBoperations.changePassword(id, password_hash)
+        flash("Пароль успешно изменен!")
+        return redirect(url_for('account'))
+    else:
+        flash("Введен неверный пароль!")
+        return redirect(url_for('account'))
+
+
 @app.context_processor
 def inject_user_data():
     if 'loggedin' in session and session['loggedin']:
