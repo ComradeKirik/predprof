@@ -1,10 +1,15 @@
 import psycopg2
 import json
 from psycopg2.extras import DictCursor
+import os
 from datetime import datetime
+from dotenv import load_dotenv
 import bcrypt
 
-conn = psycopg2.connect(host="localhost", user="postgres", password="TK", port=5432, dbname="players")
+load_dotenv()
+password_from_db = os.getenv('password_from_db')
+
+conn = psycopg2.connect(host="localhost", user="postgres", password=password_from_db, port=5432, dbname="predprof")
 if conn:
     print("Connected")
 
@@ -12,13 +17,13 @@ cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
 # cursor.execute("SELECT id FROM tasks WHERE subject LIKE %s AND theme LIKE %s")
 # И по умолчанию заменять на звездочку
-"""  Таблица для хранения соревнований в базе данных (Предмет, Уровень сложности, Количество заданий, Возможность повторного ответа при ошибке, Время начала, Продолжительность, 
+"""  Таблица для хранения соревнований в базе данных (Предмет, Уровень сложности, Количество заданий, Возможность повторного ответа при ошибке, Время начала, Продолжительность,
 Участник1 (создатель), Участник2 (принявший вызов), Результат пользователя 1, Результат пользователя 2, Победитель, Статус поединка, Подпись участника1,Подпись участника2)"""
 
 
 def init_db():
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS registered_players 
+    CREATE TABLE IF NOT EXISTS registered_players
 (
 player_id SERIAL NOT NULL,
 player_name VARCHAR(32),
@@ -52,10 +57,10 @@ PRIMARY KEY(player_id)
     user_updated INT,
     task TEXT,
     CONSTRAINT fk_user_created
-        FOREIGN KEY (user_created) 
+        FOREIGN KEY (user_created)
         REFERENCES registered_players (player_id),
     CONSTRAINT fk_user_updated
-        FOREIGN KEY (user_updated) 
+        FOREIGN KEY (user_updated)
         REFERENCES registered_players (player_id)
     );
     """)
@@ -67,10 +72,10 @@ PRIMARY KEY(player_id)
     is_right BOOLEAN,
     contest_id INT DEFAULT NULL,
     CONSTRAINT fk_user_solved
-        FOREIGN KEY (user_id) 
+        FOREIGN KEY (user_id)
         REFERENCES registered_players (player_id),
     CONSTRAINT fk_task_solved
-        FOREIGN KEY (task_id) 
+        FOREIGN KEY (task_id)
         REFERENCES tasks (id)
     )
     """)
@@ -91,12 +96,12 @@ PRIMARY KEY(player_id)
         u1_accepted BOOLEAN DEFAULT NULL,
         u2_accepted BOOLEAN DEFAULT NULL,
         CONSTRAINT fk_p1
-            FOREIGN KEY (user_1) 
+            FOREIGN KEY (user_1)
             REFERENCES registered_players (player_id),
         CONSTRAINT fk_p2
-            FOREIGN KEY (user_2) 
+            FOREIGN KEY (user_2)
             REFERENCES registered_players (player_id)
-        
+
         )
         """)
     cursor.execute("""
@@ -109,13 +114,13 @@ PRIMARY KEY(player_id)
         contest_id INT DEFAULT NULL,
         PRIMARY KEY (user_id, task_id),
         CONSTRAINT fk_user_solved
-            FOREIGN KEY (user_id) 
+            FOREIGN KEY (user_id)
             REFERENCES registered_players (player_id),
         CONSTRAINT fk_task_solved
-            FOREIGN KEY (task_id) 
+            FOREIGN KEY (task_id)
             REFERENCES tasks (id),
         CONSTRAINT fk_contest_id
-            FOREIGN KEY (contest_id) 
+            FOREIGN KEY (contest_id)
             REFERENCES contests (id)
         )
     """)
@@ -201,22 +206,22 @@ def deleteAccount(userid):
 
         # Обновляем контесты, где пользователь является user_2 (ставим user_2 в NULL)
         cursor.execute("""
-            UPDATE contests 
-            SET user_2 = NULL, 
+            UPDATE contests
+            SET user_2 = NULL,
                 u2_result = NULL,
                 u2_accepted = NULL,
-                status = CASE 
-                    WHEN status = 'active' AND user_1 IS NOT NULL THEN 'waiting' 
-                    ELSE status 
+                status = CASE
+                    WHEN status = 'active' AND user_1 IS NOT NULL THEN 'waiting'
+                    ELSE status
                 END
             WHERE user_2 = %s
         """, (userid,))
 
         # Обновляем задачи, где пользователь был создателем или обновителем
         cursor.execute("""
-            UPDATE tasks 
-            SET user_created = NULL, 
-                user_updated = NULL 
+            UPDATE tasks
+            SET user_created = NULL,
+                user_updated = NULL
             WHERE user_created = %s OR user_updated = %s
         """, (userid, userid))
 
@@ -231,8 +236,8 @@ def deleteAccount(userid):
 
         # Обновляем контесты, где пользователь является победителем
         cursor.execute("""
-            UPDATE contests 
-            SET winner = NULL 
+            UPDATE contests
+            SET winner = NULL
             WHERE winner = %s
         """, (userid,))
 
@@ -500,9 +505,9 @@ def createNewContest(data: dict, user1=None):
         }
 
         cursor.execute(
-            """INSERT INTO contests 
-            (subject, complexity, started_at, ending_at, 
-             user_1, user_2, u1_accepted, status) 
+            """INSERT INTO contests
+            (subject, complexity, started_at, ending_at,
+             user_1, user_2, u1_accepted, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id""",
             (contest_data['subject'],
@@ -596,8 +601,8 @@ def hasTaskSolvedByInContest(userid, contid):
 def checkContestExpiration():
     now = datetime.now().replace(microsecond=0)
     query = """
-                UPDATE contests 
-                SET status = CASE 
+                UPDATE contests
+                SET status = CASE
                     WHEN ending_at <= %s THEN 'Окончено'
                     WHEN started_at <= %s THEN 'Идет'
                     ELSE 'Еще не началось'
@@ -626,7 +631,7 @@ def recalculateUsersScore(contid):
         return "Контест еще не завершен"
     # Извлечение юзеров и очков
     cursor.execute("""
-        SELECT user_1, user_2, u1_result, u2_result 
+        SELECT user_1, user_2, u1_result, u2_result
         FROM contests WHERE id = %s
     """, (contid,))
     contest = cursor.fetchone()
