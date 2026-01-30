@@ -99,7 +99,7 @@ def login():
                 session['profile_pic'] = f"/static/profile_pics/pic_{session['id']}"
             else:
                 session['profile_pic'] = "/static/profile_pics/generic_profile_picture.jpg"
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('account'))
         else:
             msg = "Аккаунта не существует или введен некорректный пароль!"
     return render_template('login.html', msg=msg)
@@ -179,7 +179,6 @@ def tasks():
 @app.route("/account")
 def account():
     DBoperations.checkContestExpiration()
-    DBoperations.checkContestStart()
     if isLoggedin():
         return redirect(url_for('login'))
     # Фото профиля
@@ -509,7 +508,6 @@ def import_task():
 @app.route('/contests')
 def contest_list():
     DBoperations.checkContestExpiration()
-    DBoperations.checkContestStart()
     if isLoggedin():
         return redirect(url_for('login'))
     contests = DBoperations.listContests()
@@ -616,7 +614,7 @@ def contest(contid):
 def solveContestTask(contid, taskid):
     if isLoggedin():
         return redirect(url_for('login'))
-    if not DBoperations.isContestExpired(contid):
+    if not DBoperations.isContestExpired(contid) and DBoperations.isContestStarted(contid):
         msg = ""
         DBoperations.startSolving(session['id'], taskid, contid)
         solvationStatus = ""

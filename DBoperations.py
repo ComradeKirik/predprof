@@ -4,7 +4,7 @@ from psycopg2.extras import DictCursor
 from datetime import datetime
 import bcrypt
 
-conn = psycopg2.connect(host="localhost", user="postgres", password="maks", port=5432, dbname="players")
+conn = psycopg2.connect(host="localhost", user="postgres", password="TK", port=5432, dbname="players")
 if conn:
     print("Connected")
 
@@ -151,7 +151,7 @@ PRIMARY KEY(player_id)
     cursor.execute("SELECT * FROM contests")
     if not cursor.fetchone():
         cursor.execute(
-            "INSERT INTO contests(subject, complexity, can_reanswer, started_at, ending_at, user_1, user_2, u1_result, u2_result, winner, status, u1_accepted, u2_accepted) VALUES ('Математика', 'Легкая', now() - interval '3 hours', now(), 2, 3, 10, 12, 3, 'Окончено', true, true)")
+            "INSERT INTO contests(subject, complexity, started_at, ending_at, user_1, user_2, u1_result, u2_result, winner, status, u1_accepted, u2_accepted) VALUES ('Математика', 'Легкая', now() - interval '3 hours', now(), 2, 3, 10, 12, 3, 'Окончено', true, true)")
         conn.commit()
 
 
@@ -196,10 +196,10 @@ def daily_score_backup():
 
 def deleteAccount(userid):
     try:
-        # 1. Сначала удаляем контесты, где пользователь является создателем (user_1)
+        # Сначала удаляем контесты, где пользователь является создателем (user_1)
         cursor.execute("DELETE FROM contests WHERE user_1 = %s", (userid,))
 
-        # 2. Обновляем контесты, где пользователь является user_2 (ставим user_2 в NULL)
+        # Обновляем контесты, где пользователь является user_2 (ставим user_2 в NULL)
         cursor.execute("""
             UPDATE contests 
             SET user_2 = NULL, 
@@ -212,7 +212,7 @@ def deleteAccount(userid):
             WHERE user_2 = %s
         """, (userid,))
 
-        # 3. Обновляем задачи, где пользователь был создателем или обновителем
+        # Обновляем задачи, где пользователь был создателем или обновителем
         cursor.execute("""
             UPDATE tasks 
             SET user_created = NULL, 
@@ -220,23 +220,23 @@ def deleteAccount(userid):
             WHERE user_created = %s OR user_updated = %s
         """, (userid, userid))
 
-        # 4. Удаляем записи о решенных задачах пользователя
+        # Удаляем записи о решенных задачах пользователя
         cursor.execute("DELETE FROM solved_tasks WHERE user_id = %s", (userid,))
 
-        # 5. Удаляем задачи в процессе решения
+        # Удаляем задачи в процессе решения
         cursor.execute("DELETE FROM task_in_process WHERE user_id = %s", (userid,))
 
-        # 6. Удаляем историю очков
+        # Удаляем историю очков
         cursor.execute("DELETE FROM score_archive WHERE player_id = %s", (userid,))
 
-        # 7. Обновляем контесты, где пользователь является победителем
+        # Обновляем контесты, где пользователь является победителем
         cursor.execute("""
             UPDATE contests 
             SET winner = NULL 
             WHERE winner = %s
         """, (userid,))
 
-        # 8. Наконец удаляем самого пользователя
+        # Наконец удаляем самого пользователя
         cursor.execute("DELETE FROM registered_players WHERE player_id = %s", (userid,))
 
         conn.commit()
@@ -448,6 +448,8 @@ def getLeaderboard():
     """Получить рейтинг игроков, отсортированный по очкам"""
     cursor.execute("SELECT player_name, player_score FROM registered_players ORDER BY player_score DESC")
     return cursor.fetchall()
+
+
 def createNewContest(data: dict, user1=None):
     try:
         # Валидация обязательных полей
@@ -597,7 +599,7 @@ def checkContestExpiration():
                 UPDATE contests 
                 SET status = CASE 
                     WHEN ending_at <= %s THEN 'Окончено'
-                    WHEN starting_at <= %s THEN 'Идет'
+                    WHEN started_at <= %s THEN 'Идет'
                     ELSE 'Еще не началось'
                 END
                 WHERE status != 'Окончено' OR ending_at > %s
@@ -612,6 +614,11 @@ def isContestExpired(contid):
         return True
     return False
 
+def isContestStarted(contid):
+    cursor.execute("SELECT status FROM contests WHERE id = %s", (contid, ))
+    if cursor.fetchone()[0] == "Идет":
+        return True
+    return False
 
 def recalculateUsersScore(contid):
     if not isContestExpired(contid):
