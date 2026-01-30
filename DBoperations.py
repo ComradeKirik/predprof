@@ -622,8 +622,8 @@ def isContestStarted(contid):
 
 def recalculateUsersScore(contid):
     if not isContestExpired(contid):
+        print("Еще не конец!")
         return "Контест еще не завершен"
-
     # Извлечение юзеров и очков
     cursor.execute("""
         SELECT user_1, user_2, u1_result, u2_result 
@@ -632,41 +632,46 @@ def recalculateUsersScore(contid):
     contest = cursor.fetchone()
     if not contest or contest[1] is None:
         return "Недостаточно данных (второй игрок не найден)"
-
     u1_id, u2_id, u1_score, u2_score = contest
     cursor.execute("SELECT player_score FROM registered_players WHERE player_id = %s", (u1_id,))
     r1 = cursor.fetchone()[0]
     cursor.execute("SELECT player_score FROM registered_players WHERE player_id = %s", (u2_id,))
     r2 = cursor.fetchone()[0]
-    # Ожидаемые очки
-    e1 = get_expected(r1, r2)
-    e2 = get_expected(r2, r1)
+    if u1_score >= 0 or u2_score >= 0:
+        # Ожидаемые очки
+        e1 = get_expected(r1, r2)
+        e2 = get_expected(r2, r1)
 
-    # Фактический результат (S): 1 - победа, 0.5 - ничья, 0 - поражение
-    if u1_score > u2_score:
-        s1, s2 = 1, 0
-    elif u1_score < u2_score:
-        s1, s2 = 0, 1
+        # Фактический результат (S): 1 - победа, 0.5 - ничья, 0 - поражение
+        if u1_score > u2_score:
+            s1, s2 = 1, 0
+        elif u1_score < u2_score:
+            s1, s2 = 0, 1
+        else:
+            s1, s2 = 0.5, 0.5
+
+        # Расчет новых рейтингов
+        new_r1 = round(r1 + get_k(r1) * (s1 - e1))
+        new_r2 = round(r2 + get_k(r2) * (s2 - e2))
+
+        # Обновление данных
+        cursor.execute("UPDATE registered_players SET player_score = %s WHERE player_id = %s", (new_r1, u1_id))
+        cursor.execute("UPDATE registered_players SET player_score = %s WHERE player_id = %s", (new_r2, u2_id))
+
+        # Записываем в архив
+        for pid, score in [(u1_id, new_r1), (u2_id, new_r2)]:
+            cursor.execute("""
+                INSERT INTO score_archive (player_id, date, player_score)
+                VALUES (%s, CURRENT_DATE, %s)
+                ON CONFLICT (player_id, date) DO UPDATE SET player_score = EXCLUDED.player_score
+            """, (pid, score))
+        cursor.execute("UPDATE contests SET u1_result = -1, u2_result = -1 WHERE id = %s", (contid,))
+        conn.commit()
+
+        return True
     else:
-        s1, s2 = 0.5, 0.5
-
-    # Расчет новых рейтингов
-    new_r1 = round(r1 + get_k(r1) * (s1 - e1))
-    new_r2 = round(r2 + get_k(r2) * (s2 - e2))
-
-    # Обновление данных
-    cursor.execute("UPDATE registered_players SET player_score = %s WHERE player_id = %s", (new_r1, u1_id))
-    cursor.execute("UPDATE registered_players SET player_score = %s WHERE player_id = %s", (new_r2, u2_id))
-
-    # Записываем в архив
-    for pid, score in [(u1_id, new_r1), (u2_id, new_r2)]:
-        cursor.execute("""
-            INSERT INTO score_archive (player_id, date, player_score)
-            VALUES (%s, CURRENT_DATE, %s)
-            ON CONFLICT (player_id, date) DO UPDATE SET player_score = EXCLUDED.player_score
-        """, (pid, score))
-
-    return True
+        print("Контеста не существует!")
+        return "Контеста не существует!"
 
 
 # Рейтинг Эло

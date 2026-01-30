@@ -581,6 +581,7 @@ def contest(contid):
     if isLoggedin():
         return url_for('login')
     userid = session['id']
+    DBoperations.recalculateUsersScore(contid)
     if not DBoperations.isContestExpired(contid):
         try:
             # Достаем таски
@@ -642,6 +643,7 @@ def solveContestTask(contid, taskid):
             print(e)
             pass
         if request.method == "GET":
+            DBoperations.recalculateUsersScore(contid)
             return render_template('solve_contest_task.html',
                                    taskid=taskid,
                                    task_name=task_name,
@@ -667,7 +669,7 @@ def solveContestTask(contid, taskid):
                 else:
                     DBoperations.setSolvation(taskid, session['id'], False, contid)
                     msg = f"Задание решено неверно!"
-
+            DBoperations.recalculateUsersScore(contid)
             return render_template('solve_contest_task.html',
                                    taskid=taskid,
                                    task_name=task_name,
@@ -702,6 +704,5 @@ def leaderboard():
 
 
 if __name__ == '__main__':
-
     # app.run(debug=True, host="0.0.0.0", port=5000)
     socketio.run(app, debug=True, host="0.0.0.0", port=5000, allow_unsafe_werkzeug=True)
