@@ -25,13 +25,13 @@ def init_db():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS registered_players 
 (
-player_id SERIAL NOT NULL,
-player_name VARCHAR(32),
-player_score INT DEFAULT 1000,
-player_password VARCHAR(255) NOT NULL,
-email VARCHAR(255) NOT NULL,
-is_admin BOOLEAN DEFAULT FALSE,
-PRIMARY KEY(player_id)
+    player_id SERIAL PRIMARY KEY NOT NULL,
+    player_name VARCHAR(32),
+    player_score INT DEFAULT 1000,
+    player_password VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    is_admin BOOLEAN DEFAULT FALSE,
+    team_id INT DEFAULT NULL
 );
     """)
     cursor.execute("""
@@ -132,6 +132,28 @@ PRIMARY KEY(player_id)
             FOREIGN KEY (contest_id)
             REFERENCES contests (id)
     )
+    """)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS teams(
+        id SERIAL PRIMARY KEY,
+        team_name TEXT NOT NULL,
+        team_score INT DEFAULT 1000,
+        team_leader INT NOT NULL,
+        CONSTRAINT fk_team_leader
+            FOREIGN KEY (team_leader)
+            REFERENCES registered_players (player_id),
+        UNIQUE(team_name)
+    )""")
+    cursor.execute("""
+    DO $$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_player_team') THEN
+            ALTER TABLE registered_players 
+            ADD CONSTRAINT fk_player_team 
+            FOREIGN KEY (team_id) REFERENCES teams (id);
+        END IF;
+    END;
+    $$;
     """)
     conn.commit()
     cursor.execute("SELECT * FROM registered_players")
@@ -619,11 +641,13 @@ def isContestExpired(contid):
         return True
     return False
 
+
 def isContestStarted(contid):
-    cursor.execute("SELECT status FROM contests WHERE id = %s", (contid, ))
+    cursor.execute("SELECT status FROM contests WHERE id = %s", (contid,))
     if cursor.fetchone()[0] == "Идет":
         return True
     return False
+
 
 def recalculateUsersScore(contid):
     if not isContestExpired(contid):
