@@ -1,31 +1,33 @@
 {% include 'header_template.html' %}
 
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <div class="flash-messages" style="position: fixed; top: 80px; right: 20px; z-index: 1000; max-width: 400px;">
-      {% for message in messages %}
-        <div class="notification notification-success" style="animation: slideIn 0.3s ease;">
-          ✅ {{ message }}
-        </div>
-      {% endfor %}
-    </div>
-    <script>
-      setTimeout(function() {
-        var messages = document.querySelectorAll('.flash-messages');
-        messages.forEach(function(msg) {
-          msg.style.opacity = '0';
-          msg.style.transition = 'opacity 0.5s ease';
-          setTimeout(function() {
-            msg.parentNode.removeChild(msg);
-          }, 500);
-        });
-      }, 4000);
-    </script>
-  {% endif %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="flash-messages"
+  style="position: fixed; top: 80px; right: 20px; z-index: 1000; max-width: 400px; pointer-events: none;">
+  {% for category, message in messages %}
+  <div class="notification {{ 'notification-error' if category == 'error' else 'notification-success' }}"
+    style="animation: slideIn 0.3s ease; pointer-events: auto;">
+    {% if category == 'error' %}❌{% else %}✅{% endif %} {{ message }}
+  </div>
+  {% endfor %}
+</div>
+<script>
+  setTimeout(function () {
+    var messages = document.querySelectorAll('.flash-messages');
+    messages.forEach(function (msg) {
+      msg.style.opacity = '0';
+      msg.style.transition = 'opacity 0.5s ease';
+      setTimeout(function () {
+        msg.parentNode.removeChild(msg);
+      }, 500);
+    });
+  }, 4000);
+</script>
+{% endif %}
 {% endwith %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
 
-    <div class="dashboard-container">
-        {% include 'sidebar_menu.html' %}
-      <main class="dashboard-main">
+<div class="dashboard-container">
+  {% include 'sidebar_menu.html' %}
+  <main class="dashboard-main">
