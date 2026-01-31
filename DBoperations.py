@@ -3,8 +3,13 @@ import json
 from psycopg2.extras import DictCursor
 from datetime import datetime
 import bcrypt
+import os
+from dotenv import load_dotenv
 
-conn = psycopg2.connect(host="localhost", user="postgres", password="TK", port=5432, dbname="players")
+load_dotenv()
+pg_password = os.getenv('PG_PASSWORD')
+
+conn = psycopg2.connect(host="localhost", user="postgres", password=pg_password, port=5432, dbname="players")
 if conn:
     print("Connected")
 
