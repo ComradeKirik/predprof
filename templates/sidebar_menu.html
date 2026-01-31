@@ -7,6 +7,9 @@
         <a href="{{ url_for('account') }}" class="sidebar-link">👤 Аккаунт</a>
         <a href="{{ url_for('dashboard') }}" class="sidebar-link">📊 Прогресс</a>
         {% if session.adm %}
+        <a href="{{ url_for('admin_panel') }}" class="sidebar-link">👥 Пользователи</a>
+        {% endif %}
+        {% if session.adm %}
         <a href="{{ url_for('tasks') }}" class="sidebar-link">📚 Банк заданий</a>
         {% else %}
         <a href="{{ url_for('choose_task') }}" class="sidebar-link">✏️ Решать задания</a>

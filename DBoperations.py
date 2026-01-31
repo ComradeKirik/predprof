@@ -133,6 +133,29 @@ PRIMARY KEY(player_id)
             REFERENCES contests (id)
     )
     """)
+    # Таблица команд
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS teams(
+        team_id SERIAL PRIMARY KEY,
+        team_name VARCHAR(64),
+        team_score INT DEFAULT 1000,
+        contests TEXT DEFAULT ''
+    )
+    """)
+
+    # Добавляем колонку team_id в registered_players, если её нет, и ставим внешний ключ на teams
+    cursor.execute("ALTER TABLE registered_players ADD COLUMN IF NOT EXISTS team_id INT DEFAULT NULL")
+    cursor.execute("""
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname = 'registered_players_team_id_fkey'
+        ) THEN
+            ALTER TABLE registered_players
+            ADD CONSTRAINT registered_players_team_id_fkey FOREIGN KEY (team_id) REFERENCES teams(team_id);
+        END IF;
+    END$$;
+    """)
     conn.commit()
     cursor.execute("SELECT * FROM registered_players")
     if not cursor.fetchone():
@@ -272,7 +295,8 @@ def isAdmin(player_id: int):
 
 
 def addAdmin(player_id):
-    cursor.execute("INSERT INTO admins(user_id) VALUES (%s)", (player_id,))
+    # Older schema used a separate `admins` table; now we use the `is_admin` flag
+    cursor.execute("UPDATE registered_players SET is_admin = TRUE WHERE player_id = %s", (player_id,))
     conn.commit()
 
 
@@ -316,12 +340,17 @@ def getSolvation(taskid):
 
 
 def setSolvation(taskid, userid, isright, contid=None):
-    cursor.execute(
-        "INSERT INTO solved_tasks(user_id, task_id, is_right, contest_id) VALUES (%s, %s, %s, %s)",
-        (userid, taskid, isright, contid)
-    )
+    if contid is None:
+        cursor.execute(
+            "INSERT INTO solved_tasks(user_id, task_id, is_right) VALUES (%s, %s, %s)",
+            (userid, taskid, isright)
+        )
+    else:
+        cursor.execute(
+            "INSERT INTO solved_tasks(user_id, task_id, is_right, contest_id) VALUES (%s, %s, %s, %s)",
+            (userid, taskid, isright, contid)
+        )
 
-    if contid is not None:
         cursor.execute(
             "UPDATE contests SET u1_result = u1_result + %s WHERE id = %s AND user_1 = %s",
             (int(isright), contid, userid)
@@ -453,6 +482,65 @@ def getLeaderboard():
     """Получить рейтинг игроков, отсортированный по очкам"""
     cursor.execute("SELECT player_name, player_score FROM registered_players ORDER BY player_score DESC")
     return cursor.fetchall()
+
+
+def getUsers():
+    """Получить список всех пользователей для панели администратора"""
+    cursor.execute("SELECT player_id, player_name, email, is_admin, team_id FROM registered_players ORDER BY player_id")
+    return cursor.fetchall()
+
+
+def updateNickname(userid, new_name):
+    cursor.execute("UPDATE registered_players SET player_name = %s WHERE player_id = %s", (new_name, userid))
+    conn.commit()
+
+
+def adminChangePassword(userid, new_password_hash):
+    # new_password_hash expected as bytes from bcrypt.hashpw
+    cursor.execute("UPDATE registered_players SET player_password = %s WHERE player_id = %s",
+                   (new_password_hash.decode('utf-8'), userid))
+    conn.commit()
+
+
+# ---- Команды ----
+def create_team(team_name, creator_userid=None):
+    cursor.execute("INSERT INTO teams(team_name, team_score) VALUES(%s, %s) RETURNING team_id", (team_name, 1000))
+    team_id = cursor.fetchone()[0]
+    if creator_userid:
+        cursor.execute("UPDATE registered_players SET team_id = %s WHERE player_id = %s", (team_id, creator_userid))
+    conn.commit()
+    return team_id
+
+
+def delete_team(team_id):
+    # Сначала отвязываем пользователей
+    cursor.execute("UPDATE registered_players SET team_id = NULL WHERE team_id = %s", (team_id,))
+    cursor.execute("DELETE FROM teams WHERE team_id = %s", (team_id,))
+    conn.commit()
+
+
+def join_team(userid, team_id):
+    cursor.execute("SELECT team_id FROM teams WHERE team_id = %s", (team_id,))
+    if not cursor.fetchone():
+        return False
+    cursor.execute("UPDATE registered_players SET team_id = %s WHERE player_id = %s", (team_id, userid))
+    conn.commit()
+    return True
+
+
+def leave_team(userid):
+    cursor.execute("UPDATE registered_players SET team_id = NULL WHERE player_id = %s", (userid,))
+    conn.commit()
+
+
+def get_teams():
+    cursor.execute("SELECT team_id, team_name, team_score, contests FROM teams ORDER BY team_id")
+    return cursor.fetchall()
+
+
+def get_team(team_id):
+    cursor.execute("SELECT team_id, team_name, team_score, contests FROM teams WHERE team_id = %s", (team_id,))
+    return cursor.fetchone()
 
 
 def createNewContest(data: dict, user1=None):
@@ -685,6 +773,8 @@ def get_expected(a_rating, b_rating):
 
 
 def get_k(rating):
-    if rating >= 2400: return 10
-    if rating <= 1500: return 40
+    if rating >= 2400:
+        return 10
+    if rating <= 1500:
+        return 40
     return 20
