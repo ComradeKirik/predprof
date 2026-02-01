@@ -3,14 +3,17 @@
 <script src="{{ url_for('static', filename='js/graphics.js') }}"></script>
 
 <section id="scores" class="dashboard-card">
-    <h2>📊 Прогресс</h2>
-    <p style="color: #666; margin-bottom: 20px;">Отслеживайте ваш прогресс в этом месяце</p>
+    <h2>📊 Прогресс</h2><br>
+    Среднее время выполнения задачи: {{ avgTime }}<br>
+    Процент успешно выполненных заданий: {{ successRate }}%<br>
     <div class="scoreChart">
         <div id="scoreChart"
              data-chart-data='{{ chart_data_json|safe }}'
              style="height: 400px; width: 100%; border-radius: 8px;">
         </div>
     </div>
+
 </section>
+
 
 {% include 'footer_lk_template.html' %}

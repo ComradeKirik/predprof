@@ -178,7 +178,26 @@ def init_db():
     cursor.execute("SELECT * FROM contests")
     if not cursor.fetchone():
         cursor.execute(
-            "INSERT INTO contests(subject, complexity, started_at, ending_at, user_1, user_2, u1_result, u2_result, winner, status, u1_accepted, u2_accepted) VALUES ('Математика', 'Легкая', now() - interval '3 hours', now(), 2, 3, 10, 12, 3, 'Окончено', true, true)")
+            "INSERT INTO contests(subject, complexity, started_at, ending_at, user_1, user_2, u1_result, u2_result, winner, status, u1_accepted, u2_accepted) VALUES ('Математика', 'Легкая', now() - interval '3 minutes', now() + interval '1 minutes', 2, 3, 10, 12, 3, '', true, true)")
+        cursor.execute(
+            "INSERT INTO contests(subject, complexity, started_at, ending_at, user_1, user_2, u1_result, u2_result, winner, status, u1_accepted, u2_accepted) VALUES ('Математика', 'Легкая', now() - interval '3 hours', now(), 2, 3, 10, 12, 3, '', true, true)")
+        conn.commit()
+    cursor.execute("SELECT * FROM solved_tasks")
+    if not cursor.fetchone():
+        cursor.execute("INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '3 days', true)")
+        cursor.execute("INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '2 days', true)")
+        cursor.execute("INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '2 days', true)")
+        cursor.execute("INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '1 days', false)")
+        conn.commit()
+
+    cursor.execute("SELECT * FROM task_in_process")
+    if not cursor.fetchone():
+        cursor.execute(
+            "INSERT INTO task_in_process(user_id, task_id, started_at, ended_at) VALUES (2, 1, now() - interval '1 hours', now())")
+        cursor.execute(
+            "INSERT INTO task_in_process(user_id, task_id, started_at, ended_at) VALUES (2, 2, now() - interval '2 hours', now())")
+        cursor.execute(
+            "INSERT INTO task_in_process(user_id, task_id, started_at, ended_at) VALUES (2, 3, now() - interval '1 hours', now())")
         conn.commit()
 
 
@@ -287,6 +306,24 @@ def takeScorebyDays(player_id: int):
                    (player_id, current_date))
     return cursor.fetchall()
 
+
+def solvedTasksByDate(player_id):
+    current_date = datetime.now().date()
+    cursor.execute(
+        "SELECT solved_at as date, count(*) as task_count FROM solved_tasks WHERE user_id = %s GROUP BY solved_at", \
+        (player_id,))
+    return cursor.fetchall()
+
+
+def takeAverageTime(player_id):
+    cursor.execute(
+        "SELECT avg(ended_at - started_at) FROM task_in_process WHERE user_id = %s", \
+        (player_id,))
+    return cursor.fetchone()
+
+def calculateSuccessRate(player_id):
+    cursor.execute("SELECT count(CASE WHEN is_right = true THEN 1 ELSE NULL END)*100 / count(*) FROM solved_tasks WHERE user_id = %s GROUP BY user_id", (player_id,))
+    return cursor.fetchone()
 
 def isAdmin(player_id: int):
     cursor.execute("SELECT * FROM registered_players WHERE player_id = %s AND is_admin = true", (player_id,))
@@ -622,16 +659,43 @@ def hasTaskSolvedByInContest(userid, contid):
 
 def checkContestExpiration():
     now = datetime.now().replace(microsecond=0)
+    status_not_started = 'Еще не началось'
+    status_ongoing = 'Идет'
+    status_ended = 'Окончено'
     query = """
                 UPDATE contests 
-                SET status = CASE 
-                    WHEN ending_at <= %s THEN 'Окончено'
-                    WHEN started_at <= %s THEN 'Идет'
-                    ELSE 'Еще не началось'
-                END
-                WHERE status != 'Окончено' OR ending_at > %s
+                SET status = %s
+                WHERE %s < started_at AND status != %s
+    """
+    cursor.execute(query, (status_not_started, now, status_not_started,))
+    query = """
+                UPDATE contests 
+                SET status = %s
+                WHERE started_at < %s AND %s < ending_at AND status != %s
+    """
+    cursor.execute(query, (status_ongoing, now, now, status_ongoing))
+    query = """
+                        SELECT id FROM contests 
+                        WHERE ending_at < %s AND status != %s
             """
-    cursor.execute(query, (now, now, now))
+    cursor.execute(query, (now, 'Окончено'))
+    completed_contests = cursor.fetchall()
+    for contid in completed_contests:
+        print(contid)
+        contid = contid[0]
+        recalculateUsersScore(contid)
+        query = """
+                            UPDATE contests 
+                            SET status = %s
+                            WHERE id = %s
+                """
+        cursor.execute(query, (status_ended, contid,))
+    query = """
+                    UPDATE contests 
+                    SET status = %s
+                    WHERE ending_at < %s AND status != %s
+        """
+    cursor.execute(query, (status_ended, now, status_ended,))
     conn.commit()
 
 
@@ -650,12 +714,9 @@ def isContestStarted(contid):
 
 
 def recalculateUsersScore(contid):
-    if not isContestExpired(contid):
-        print("Еще не конец!")
-        return "Контест еще не завершен"
     # Извлечение юзеров и очков
     cursor.execute("""
-        SELECT user_1, user_2, u1_result, u2_result 
+        SELECT user_1, user_2, u1_result, u2_result
         FROM contests WHERE id = %s
     """, (contid,))
     contest = cursor.fetchone()

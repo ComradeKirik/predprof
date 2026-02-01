@@ -150,7 +150,10 @@ def dashboard():
         return redirect(url_for('login'))
     try:
         # Таблички
-        scores = DBoperations.takeScorebyDays(session['id'])
+        #scores = DBoperations.takeScorebyDays(session['id'])
+        scores = DBoperations.solvedTasksByDate(session['id'])
+        avgTime = DBoperations.takeAverageTime(session['id'])[0]
+        successRate = DBoperations.calculateSuccessRate(session['id'])[0]
         chart_data = []
         for date, score in scores:
             chart_data.append([date.strftime("%Y-%m-%d"), score])
@@ -160,7 +163,9 @@ def dashboard():
 
         return render_template('dashboard.html',
                                chart_data_json=chart_data,
-                               username=session.get('username', 'Пользователь')
+                               username=session.get('username', 'Пользователь'),
+                               avgTime=avgTime,
+                               successRate=successRate
                                )
     except KeyError:
         return redirect(url_for('login'))
@@ -332,13 +337,20 @@ def update_task(taskid):
     return redirect(url_for('tasks'))
 
 
-@app.route('/new_task')
+@app.route('/new_task', methods=['GET'])
 def new_task():
     if isLoggedin():
         return redirect(url_for('login'))
     if isAdministrator():
         return render_template('404.html')
-    return render_template('new_task.html')
+    task_name = request.args.get('task_name')
+    subject = request.args.get('subject', '')
+    complexity = request.args.get('complexity')
+    theme = request.args.get('theme')
+    description = request.args.get('description', '')
+    answer = request.args.get('answer', '')
+    hint = request.args.get('hint')
+    return render_template('new_task.html', subject=subject, description=description, answer=answer)
 
 
 @app.route('/post_new_task', methods=['POST', 'GET'])
@@ -358,7 +370,21 @@ def post_new_task():
     emit('message', 'post_new_task', broadcast=True, namespace="/")
     return redirect(url_for('tasks'))
 
+@app.route('/upload_task', methods=['POST', 'GET'])
+def upload_task():
 
+    if isAdministrator():
+        return render_template('404.html')
+
+    from sdamgia import SdamGIA
+    sdamgia = SdamGIA()
+    subjects = {'math': 'Математика', 'phys': 'Физика'}
+    subject = request.form.get('subject', '')
+    id = request.form.get('id', '')
+    print("awdawdawdawd", subject, id)
+    res = sdamgia.get_problem_by_id(subject, id)
+    print(res)
+    return redirect(url_for('new_task', subject=subjects[subject], description=res['condition']['text'], answer=res['answer']))
 @app.route('/choose_task')
 def choose_task():
     if isLoggedin():
@@ -581,7 +607,6 @@ def contest(contid):
     if isLoggedin():
         return url_for('login')
     userid = session['id']
-    DBoperations.recalculateUsersScore(contid)
     if not DBoperations.isContestExpired(contid):
         try:
             # Достаем таски

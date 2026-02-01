@@ -34,6 +34,16 @@
         </a>
     </div>
 </section>
+<section class="dashboard-card">
+    <form action="{{ url_for('upload_task') }}" method="POST">
+        <input type="text" name="id">
+        <select name="subject">
+            <option value="math">Математика</option>
+            <option value="phys">Физика</option>
+        </select>
+        <br><button class="btn btn-gold" style="font-size: 1.1rem;" type="submit">Импортировать задание</button>
+    </form>
+</section>
 {% endif %}
 
 <script>
