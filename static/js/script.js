@@ -1,10 +1,10 @@
 // Smooth interactions and validations
-document.addEventListener('DOMContentLoaded', function() {
-    
+document.addEventListener('DOMContentLoaded', function () {
+
     // Password validation for registration form
     const registerForm = document.getElementById('registerForm');
     if (registerForm) {
-        registerForm.addEventListener('submit', function(e) {
+        registerForm.addEventListener('submit', function (e) {
             const password = document.getElementById('password')?.value;
             const confirm = document.getElementById('confirm_password')?.value;
             const errorDiv = document.getElementById('error-message');
@@ -22,9 +22,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Smooth scroll effect for header on scroll
-    window.addEventListener('scroll', function() {
+    window.addEventListener('scroll', function () {
         const navbar = document.querySelector('.navbar');
         if (navbar) {
             if (window.pageYOffset > 50) {
@@ -34,32 +34,32 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-    
+
     // Add hover effects to buttons
     const buttons = document.querySelectorAll('.btn');
     buttons.forEach(button => {
-        button.addEventListener('mouseenter', function() {
+        button.addEventListener('mouseenter', function () {
             this.style.transform = 'translateY(-3px)';
         });
-        button.addEventListener('mouseleave', function() {
+        button.addEventListener('mouseleave', function () {
             this.style.transform = 'translateY(0)';
         });
     });
-    
+
     // Fade in animations for cards
     const cards = document.querySelectorAll('.dashboard-card, .task-card');
     cards.forEach((card, index) => {
         card.style.opacity = '0';
         card.style.animation = `slideUp 0.5s ease ${index * 0.1}s forwards`;
     });
-    
+
     // Input focus effects
     const inputs = document.querySelectorAll('input, textarea, select');
     inputs.forEach(input => {
-        input.addEventListener('focus', function() {
+        input.addEventListener('focus', function () {
             this.style.transform = 'scale(1.01)';
         });
-        input.addEventListener('blur', function() {
+        input.addEventListener('blur', function () {
             this.style.transform = 'scale(1)';
         });
     });
@@ -87,10 +87,18 @@ if (!document.querySelector('style[data-animations]')) {
 // Navbar scroll indicator
 function handleNavScroll() {
     const navbar = document.querySelector('.navbar');
-    if (window.scrollY > 100) {
-        navbar.style.background = 'linear-gradient(135deg, rgba(26, 42, 108, 0.95) 0%, rgba(45, 62, 159, 0.95) 100%)';
-    } else {
-        navbar.style.background = 'linear-gradient(135deg, #1a2a6c 0%, #2d3e9f 100%)';
+    // We remove the inline style first if it was set by previous versions of the script, 
+    // though refreshing the page would clear it.
+    if (navbar) {
+        if (window.scrollY > 50) {
+            navbar.classList.add('scrolled');
+            // Remove inline style to allow CSS class to take precedence if needed, 
+            // primarily to reset any legacy inline styles if we didn't reload
+            navbar.style.background = '';
+        } else {
+            navbar.classList.remove('scrolled');
+            navbar.style.background = '';
+        }
     }
 }
 

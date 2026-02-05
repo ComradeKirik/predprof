@@ -2,18 +2,18 @@
 
 
 <script>
-function openModal(id) {
-    document.getElementById(id).style.display = "block";
-}
-function closeModal(id) {
-    document.getElementById(id).style.display = "none";
-}
-// Закрытие при клике вне окна
-window.onclick = function(event) {
-    if (event.target.className === 'modal') {
-        event.target.style.display = "none";
+    function openModal(id) {
+        document.getElementById(id).style.display = "block";
     }
-}
+    function closeModal(id) {
+        document.getElementById(id).style.display = "none";
+    }
+    // Закрытие при клике вне окна
+    window.onclick = function (event) {
+        if (event.target.className === 'modal') {
+            event.target.style.display = "none";
+        }
+    }
 </script>
 
 
@@ -38,9 +38,9 @@ window.onclick = function(event) {
                     <button class="btn btn-gold">Выйти из аккаунта</button>
                 </a>
                 <form action="{{ url_for('upload_avatar') }}" method="POST" enctype="multipart/form-data"
-                      style="display: inline;">
+                    style="display: inline;">
                     <input type="file" id="avatarInput" name="file" accept="image/*" style="display: none;"
-                           onchange="this.form.submit()">
+                        onchange="this.form.submit()">
                     <button type="button" class="btn btn-gold" onclick="document.getElementById('avatarInput').click()">
                         Сменить аватарку
                     </button>

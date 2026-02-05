@@ -1,44 +1,41 @@
 {% include 'header_lk_template.html' %}
 
-<link rel="stylesheet" href="/static/css/components.css">
+<link rel="stylesheet" href="/static/css/components.css?v=5">
 
 <section class="dashboard-card">
     <h2>🏆 Рейтинг игроков</h2>
 
     <div style="overflow-x: auto; margin-top: 20px;">
-        <table
-            style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <table class="table leaderboard-table">
             <thead>
-                <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                    <th style="padding: 15px; text-align: left; font-weight: 600;">Место</th>
-                    <th style="padding: 15px; text-align: left; font-weight: 600;">Игрок</th>
-                    <th style="padding: 15px; text-align: right; font-weight: 600;">Очки</th>
+                <tr>
+                    <th style="width: 10%;">Место</th>
+                    <th>Игрок</th>
+                    <th style="text-align: right;">Очки</th>
                 </tr>
             </thead>
             <tbody>
                 {% if players %}
                 {% for player in players %}
-                <tr
-                    style="border-bottom: 1px solid #f0f0f0; {% if loop.index <= 3 %}background: linear-gradient(to right, {% if loop.index == 1 %}#ffd700{% elif loop.index == 2 %}#c0c0c0{% else %}#cd7f32{% endif %}15, transparent);{% endif %}">
-                    <td
-                        style="padding: 15px; font-weight: 600; color: {% if loop.index == 1 %}#ffd700{% elif loop.index == 2 %}#c0c0c0{% elif loop.index == 3 %}#cd7f32{% else %}#667eea{% endif %};">
+                <tr class="rank-{{ loop.index }}">
+                    <td class="rank-cell">
                         {% if loop.index == 1 %}🥇
                         {% elif loop.index == 2 %}🥈
                         {% elif loop.index == 3 %}🥉
                         {% else %}{{ loop.index }}
                         {% endif %}
                     </td>
-                    <td style="padding: 15px; font-weight: 500; color: #333;">
+                    <td class="player-cell">
                         {{ player[0] or player['player_name'] }}
                     </td>
-                    <td style="padding: 15px; text-align: right; font-weight: 600; color: #667eea; font-size: 1.1rem;">
+                    <td class="score-cell">
                         {{ player[1] or player['player_score'] }}
                     </td>
                 </tr>
                 {% endfor %}
                 {% else %}
                 <tr>
-                    <td colspan="3" style="padding: 30px; text-align: center; color: #999;">
+                    <td colspan="3" style="padding: 30px; text-align: center; color: var(--text-color);">
                         Нет данных о игроках
                     </td>
                 </tr>
@@ -48,9 +45,8 @@
     </div>
 
     {% if players %}
-    <div
-        style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #667eea15, #764ba215); border-radius: 8px; border-left: 4px solid #667eea;">
-        <p style="margin: 0; color: #667eea; font-weight: 600;">
+    <div class="leaderboard-summary">
+        <p>
             📊 Всего игроков в рейтинге: {{ players|length }}
         </p>
     </div>

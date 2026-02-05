@@ -27,6 +27,12 @@
     margin-bottom: 40px;
 }
 
+[data-theme="dark"] .card-glass {
+    background: rgba(30, 30, 30, 0.9);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 .filter-form {
     display: flex;
     gap: 20px;
@@ -43,8 +49,12 @@
     display: block;
     margin-bottom: 8px;
     font-weight: 600;
-    color: #1a2a6c;
+    color: var(--header-bg);
     font-size: 0.9rem;
+}
+
+[data-theme="dark"] .filter-group label {
+    color: var(--text-color);
 }
 
 .select-wrapper {
@@ -54,11 +64,11 @@
 .modern-select {
     width: 100%;
     padding: 12px 16px;
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--input-border);
     border-radius: 10px;
-    background-color: white;
+    background-color: var(--input-bg);
     font-size: 1rem;
-    color: #333;
+    color: var(--text-color);
     cursor: pointer;
     transition: all 0.3s ease;
     appearance: none;
@@ -68,15 +78,19 @@
     background-size: 1em;
 }
 
+[data-theme="dark"] .modern-select {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fdbb2d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+}
+
 .modern-select:focus {
-    border-color: #fdbb2d;
+    border-color: var(--gold-accent);
     outline: none;
     box-shadow: 0 0 0 3px rgba(253, 187, 45, 0.2);
 }
 
 .btn-apply {
     padding: 14px 28px;
-    background: linear-gradient(135deg, #1a2a6c 0%, #2a48a1 100%);
+    background: linear-gradient(135deg, var(--header-bg) 0%, rgba(42, 72, 161, 1) 100%);
     color: white;
     border: none;
     border-radius: 10px;
@@ -84,6 +98,11 @@
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     height: 100%;
+}
+
+[data-theme="dark"] .btn-apply {
+    background: linear-gradient(135deg, var(--gold-accent) 0%, #d4a01c 100%);
+    color: black;
 }
 
 .btn-apply:hover {
@@ -98,10 +117,14 @@
 
 .section-title {
     font-size: 1.4rem;
-    color: #1a2a6c;
+    color: var(--header-bg);
     margin: 30px 0 20px;
-    border-left: 5px solid #fdbb2d;
+    border-left: 5px solid var(--gold-accent);
     padding-left: 15px;
+}
+
+[data-theme="dark"] .section-title {
+    color: var(--text-color);
 }
 
 .task-grid {
@@ -112,7 +135,7 @@
 
 /* Task Cards Modern */
 .task-card-modern {
-    background: white;
+    background: var(--card-bg);
     border-radius: 12px;
     padding: 24px;
     display: flex;
@@ -137,7 +160,7 @@
     left: 0;
     width: 4px;
     height: 100%;
-    background: #e0e0e0;
+    background: var(--input-border);
     /* Default neutral border */
     transition: background 0.3s;
 }
@@ -148,7 +171,7 @@
 }
 
 .task-card-modern:hover::before {
-    background: #fdbb2d;
+    background: var(--gold-accent);
 }
 
 .task-header {
@@ -161,12 +184,13 @@
 .task-id {
     font-size: 0.85rem;
     color: #999;
+    /* Neutral enough */
     font-weight: 500;
 }
 
 .task-title {
     font-size: 1.1rem;
-    color: #333;
+    color: var(--text-color);
     margin-bottom: 20px;
     font-weight: 700;
     line-height: 1.4;
@@ -177,18 +201,23 @@
     justify-content: space-between;
     align-items: center;
     margin-top: auto;
-    border-top: 1px solid #f5f5f5;
+    border-top: 1px solid var(--input-border);
     padding-top: 15px;
 }
 
 .task-subject {
     font-size: 0.9rem;
     color: #666;
+    /* Update if needed for dark mode, but might be readable */
     font-weight: 500;
 }
 
+[data-theme="dark"] .task-subject {
+    color: #bbb;
+}
+
 .task-arrow {
-    color: #fdbb2d;
+    color: var(--gold-accent);
     font-weight: bold;
     transform: translateX(0);
     transition: transform 0.3s;
@@ -201,6 +230,11 @@
 /* Specific Card States */
 .task-unsolved {
     border: 1px solid rgba(231, 76, 60, 0.2);
+    background: linear-gradient(to bottom right, var(--card-bg), var(--card-bg));
+    /* removed explicit white/pink mix to respect card-bg, adding distinct border/glow instead */
+}
+
+[data-theme="light"] .task-unsolved {
     background: linear-gradient(to bottom right, #fff, #fff5f5);
 }
 
@@ -216,6 +250,11 @@
 
 .task-solved {
     border: 1px solid rgba(39, 174, 96, 0.2);
+    /* background: linear-gradient(to bottom right, #fff, #f0fff4); */
+    background: linear-gradient(to bottom right, var(--card-bg), var(--card-bg));
+}
+
+[data-theme="light"] .task-solved {
     background: linear-gradient(to bottom right, #fff, #f0fff4);
 }
 
