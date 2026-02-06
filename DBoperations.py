@@ -184,10 +184,14 @@ def init_db():
         conn.commit()
     cursor.execute("SELECT * FROM solved_tasks")
     if not cursor.fetchone():
-        cursor.execute("INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '3 days', true)")
-        cursor.execute("INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '2 days', true)")
-        cursor.execute("INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '2 days', true)")
-        cursor.execute("INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '1 days', false)")
+        cursor.execute(
+            "INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '3 days', true)")
+        cursor.execute(
+            "INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '2 days', true)")
+        cursor.execute(
+            "INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '2 days', true)")
+        cursor.execute(
+            "INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '1 days', false)")
         conn.commit()
 
     cursor.execute("SELECT * FROM task_in_process")
@@ -321,9 +325,13 @@ def takeAverageTime(player_id):
         (player_id,))
     return cursor.fetchone()
 
+
 def calculateSuccessRate(player_id):
-    cursor.execute("SELECT count(CASE WHEN is_right = true THEN 1 ELSE NULL END)*100 / count(*) FROM solved_tasks WHERE user_id = %s GROUP BY user_id", (player_id,))
+    cursor.execute(
+        "SELECT count(CASE WHEN is_right = true THEN 1 ELSE NULL END)*100 / count(*) FROM solved_tasks WHERE user_id = %s GROUP BY user_id",
+        (player_id,))
     return cursor.fetchone()
+
 
 def isAdmin(player_id: int):
     cursor.execute("SELECT * FROM registered_players WHERE player_id = %s AND is_admin = true", (player_id,))
