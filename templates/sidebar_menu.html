@@ -1,7 +1,7 @@
 <aside class="dashboard-sidebar">
-    <div style="padding: 15px 0; border-bottom: 2px solid #fdbb2d; margin-bottom: 25px;">
-        <h3 style="color: #1a2a6c; margin-bottom: 5px; font-size: 1.2rem;">👋 Привет!</h3>
-        <p style="color: #667eea; font-weight: 600;">{{ session.username }}</p>
+    <div class="sidebar-header">
+        <h3 class="sidebar-greeting">👋 Привет!</h3>
+        <p class="sidebar-username">{{ session.username }}</p>
     </div>
     <nav>
         <a href="{{ url_for('account') }}" class="sidebar-link">👤 Аккаунт</a>
@@ -16,7 +16,6 @@
         {% endif %}
         <a href="{{ url_for('contest_list') }}" class="sidebar-link">🏆 Соревнования</a>
         <a href="{{ url_for('leaderboard') }}" class="sidebar-link">📊 Рейтинг</a>
-        <a href="{{ url_for('logout') }}" class="sidebar-link"
-            style="margin-top: 30px; border-top: 1px solid #e0e0e0; padding-top: 20px; color: #e74c3c;">🚪 Выход</a>
+        <a href="{{ url_for('logout') }}" class="sidebar-link sidebar-logout">🚪 Выход</a>
     </nav>
 </aside>

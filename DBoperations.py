@@ -5,6 +5,8 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 import bcrypt
+import os
+from dotenv import load_dotenv
 
 load_dotenv()
 password_from_db = os.getenv('password_from_db')
@@ -25,13 +27,13 @@ def init_db():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS registered_players
 (
-player_id SERIAL NOT NULL,
-player_name VARCHAR(32),
-player_score INT DEFAULT 1000,
-player_password VARCHAR(255) NOT NULL,
-email VARCHAR(255) NOT NULL,
-is_admin BOOLEAN DEFAULT FALSE,
-PRIMARY KEY(player_id)
+    player_id SERIAL PRIMARY KEY NOT NULL,
+    player_name VARCHAR(32),
+    player_score INT DEFAULT 1000,
+    player_password VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    is_admin BOOLEAN DEFAULT FALSE,
+    team_id INT DEFAULT NULL
 );
     """)
     cursor.execute("""
@@ -155,6 +157,27 @@ PRIMARY KEY(player_id)
             ADD CONSTRAINT registered_players_team_id_fkey FOREIGN KEY (team_id) REFERENCES teams(team_id);
         END IF;
     END$$;
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS teams(
+        id SERIAL PRIMARY KEY,
+        team_name TEXT NOT NULL,
+        team_score INT DEFAULT 1000,
+        team_leader INT NOT NULL,
+        CONSTRAINT fk_team_leader
+            FOREIGN KEY (team_leader)
+            REFERENCES registered_players (player_id),
+        UNIQUE(team_name)
+    )""")
+    cursor.execute("""
+    DO $$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_player_team') THEN
+            ALTER TABLE registered_players 
+            ADD CONSTRAINT fk_player_team 
+            FOREIGN KEY (team_id) REFERENCES teams (id);
+        END IF;
+    END;
+    $$;
     """)
     conn.commit()
     cursor.execute("SELECT * FROM registered_players")
@@ -179,7 +202,30 @@ PRIMARY KEY(player_id)
     cursor.execute("SELECT * FROM contests")
     if not cursor.fetchone():
         cursor.execute(
-            "INSERT INTO contests(subject, complexity, started_at, ending_at, user_1, user_2, u1_result, u2_result, winner, status, u1_accepted, u2_accepted) VALUES ('Математика', 'Легкая', now() - interval '3 hours', now(), 2, 3, 10, 12, 3, 'Окончено', true, true)")
+            "INSERT INTO contests(subject, complexity, started_at, ending_at, user_1, user_2, u1_result, u2_result, winner, status, u1_accepted, u2_accepted) VALUES ('Математика', 'Легкая', now() - interval '3 minutes', now() + interval '1 minutes', 2, 3, 10, 12, 3, '', true, true)")
+        cursor.execute(
+            "INSERT INTO contests(subject, complexity, started_at, ending_at, user_1, user_2, u1_result, u2_result, winner, status, u1_accepted, u2_accepted) VALUES ('Математика', 'Легкая', now() - interval '3 hours', now(), 2, 3, 10, 12, 3, '', true, true)")
+        conn.commit()
+    cursor.execute("SELECT * FROM solved_tasks")
+    if not cursor.fetchone():
+        cursor.execute(
+            "INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '3 days', true)")
+        cursor.execute(
+            "INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '2 days', true)")
+        cursor.execute(
+            "INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '2 days', true)")
+        cursor.execute(
+            "INSERT INTO solved_tasks(user_id, task_id, solved_at, is_right) VALUES (2, 1, now() - interval '1 days', false)")
+        conn.commit()
+
+    cursor.execute("SELECT * FROM task_in_process")
+    if not cursor.fetchone():
+        cursor.execute(
+            "INSERT INTO task_in_process(user_id, task_id, started_at, ended_at) VALUES (2, 1, now() - interval '1 hours', now())")
+        cursor.execute(
+            "INSERT INTO task_in_process(user_id, task_id, started_at, ended_at) VALUES (2, 2, now() - interval '2 hours', now())")
+        cursor.execute(
+            "INSERT INTO task_in_process(user_id, task_id, started_at, ended_at) VALUES (2, 3, now() - interval '1 hours', now())")
         conn.commit()
 
 
@@ -287,6 +333,28 @@ def takeScorebyDays(player_id: int):
     cursor.execute("SELECT date, player_score FROM score_archive WHERE player_id = %s AND date + 30 >= %s", \
                    (player_id, current_date))
     return cursor.fetchall()
+
+
+def solvedTasksByDate(player_id):
+    current_date = datetime.now().date()
+    cursor.execute(
+        "SELECT solved_at as date, count(*) as task_count FROM solved_tasks WHERE user_id = %s GROUP BY solved_at", \
+        (player_id,))
+    return cursor.fetchall()
+
+
+def takeAverageTime(player_id):
+    cursor.execute(
+        "SELECT avg(ended_at - started_at) FROM task_in_process WHERE user_id = %s", \
+        (player_id,))
+    return cursor.fetchone()
+
+
+def calculateSuccessRate(player_id):
+    cursor.execute(
+        "SELECT count(CASE WHEN is_right = true THEN 1 ELSE NULL END)*100 / count(*) FROM solved_tasks WHERE user_id = %s GROUP BY user_id",
+        (player_id,))
+    return cursor.fetchone()
 
 
 def isAdmin(player_id: int):
@@ -688,6 +756,9 @@ def hasTaskSolvedByInContest(userid, contid):
 
 def checkContestExpiration():
     now = datetime.now().replace(microsecond=0)
+    status_not_started = 'Еще не началось'
+    status_ongoing = 'Идет'
+    status_ended = 'Окончено'
     query = """
                 UPDATE contests
                 SET status = CASE
@@ -696,8 +767,39 @@ def checkContestExpiration():
                     ELSE 'Еще не началось'
                 END
                 WHERE status != 'Окончено' OR ending_at > %s
+                UPDATE contests 
+                SET status = %s
+                WHERE %s < started_at AND status != %s
+    """
+    cursor.execute(query, (status_not_started, now, status_not_started,))
+    query = """
+                UPDATE contests 
+                SET status = %s
+                WHERE started_at < %s AND %s < ending_at AND status != %s
+    """
+    cursor.execute(query, (status_ongoing, now, now, status_ongoing))
+    query = """
+                        SELECT id FROM contests 
+                        WHERE ending_at < %s AND status != %s
             """
-    cursor.execute(query, (now, now, now))
+    cursor.execute(query, (now, 'Окончено'))
+    completed_contests = cursor.fetchall()
+    for contid in completed_contests:
+        print(contid)
+        contid = contid[0]
+        recalculateUsersScore(contid)
+        query = """
+                            UPDATE contests 
+                            SET status = %s
+                            WHERE id = %s
+                """
+        cursor.execute(query, (status_ended, contid,))
+    query = """
+                    UPDATE contests 
+                    SET status = %s
+                    WHERE ending_at < %s AND status != %s
+        """
+    cursor.execute(query, (status_ended, now, status_ended,))
     conn.commit()
 
 
@@ -707,16 +809,15 @@ def isContestExpired(contid):
         return True
     return False
 
+
 def isContestStarted(contid):
-    cursor.execute("SELECT status FROM contests WHERE id = %s", (contid, ))
+    cursor.execute("SELECT status FROM contests WHERE id = %s", (contid,))
     if cursor.fetchone()[0] == "Идет":
         return True
     return False
 
+
 def recalculateUsersScore(contid):
-    if not isContestExpired(contid):
-        print("Еще не конец!")
-        return "Контест еще не завершен"
     # Извлечение юзеров и очков
     cursor.execute("""
         SELECT user_1, user_2, u1_result, u2_result
@@ -726,6 +827,16 @@ def recalculateUsersScore(contid):
     if not contest or contest[1] is None:
         return "Недостаточно данных (второй игрок не найден)"
     u1_id, u2_id, u1_score, u2_score = contest
+    
+    # Explicitly cast to int to avoid TypeError if DB returns strings
+    try:
+        if u1_score is not None:
+            u1_score = int(u1_score)
+        if u2_score is not None:
+            u2_score = int(u2_score)
+    except ValueError:
+        print(f"Error converting scores to int: {u1_score}, {u2_score}")
+        return "Ошибка данных в результатах соревнования"
     cursor.execute("SELECT player_score FROM registered_players WHERE player_id = %s", (u1_id,))
     r1 = cursor.fetchone()[0]
     cursor.execute("SELECT player_score FROM registered_players WHERE player_id = %s", (u2_id,))

@@ -38,6 +38,30 @@ anychart.onDocumentReady(function () {
     // Включаем легенду
     chart.legend().enabled(false);
 
+    // Адаптация под тему
+    function updateChartTheme() {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (isDark) {
+            chart.background().fill("transparent");
+            chart.title().fontColor("#e0e0e0");
+            chart.xAxis().labels().fontColor("#e0e0e0");
+            chart.xAxis().title().fontColor("#e0e0e0");
+            chart.yAxis().labels().fontColor("#e0e0e0");
+            chart.yAxis().title().fontColor("#e0e0e0");
+            // Also update series color if needed
+            // series.stroke("#fdbb2d"); 
+        } else {
+            chart.background().fill("white");
+            chart.title().fontColor("#333");
+            chart.xAxis().labels().fontColor("#333");
+            chart.xAxis().title().fontColor("#333");
+            chart.yAxis().labels().fontColor("#333");
+            chart.yAxis().title().fontColor("#333");
+        }
+    }
+
+    updateChartTheme();
+
     // Устанавливаем контейнер и рисуем график
     chart.container("scoreChart");
     chart.draw();
