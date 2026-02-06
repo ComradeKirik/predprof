@@ -20,7 +20,7 @@ DBoperations.init_db()
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['JSONED_TASKS'] = "/static/json/"
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode='threading')
 
 users = {}
 
@@ -57,11 +57,15 @@ def handle_request_reload(data):
 
 
 def isLoggedin():
-    return 'id' not in session
+    # True when user is logged in
+    return 'id' in session
 
 
 def isAdministrator():
-    return not DBoperations.isAdmin(session['id'])
+    try:
+        return bool(DBoperations.isAdmin(session['id']))
+    except Exception:
+        return False
 
 
 """
@@ -99,7 +103,7 @@ def login():
                 session['profile_pic'] = f"/static/profile_pics/pic_{session['id']}"
             else:
                 session['profile_pic'] = "/static/profile_pics/generic_profile_picture.jpg"
-            return redirect(url_for('account'))
+            return redirect(url_for('dashboard'))
         else:
             msg = "Аккаунта не существует или введен некорректный пароль!"
     return render_template('login.html', msg=msg)
@@ -116,8 +120,8 @@ def logout():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    if not isLoggedin():
-        return redirect(url_for('account'))
+    if isLoggedin():
+        return redirect(url_for('dashboard'))
     msg = ""
     if request.method == "POST" and "username" in request.form and "password" in request.form and "email" \
             in request.form:
@@ -131,7 +135,7 @@ def register():
             msg = "Данная почта уже зарегистрирована"
         elif not re.match(r"^[A-Za-z0-9_]+$", username):
             msg = "Запрещенные символы в имени. Разрешена латиница, цифры и _"
-        elif DBoperations.checkUserName(username) != None:
+        elif DBoperations.checkUserName(username) is not None:
             msg = "Данный никнейм уже используется!"
         elif not username or not email or not password:
             msg = "Пожалуйста, заполните все поля!"
@@ -146,7 +150,7 @@ def register():
 
 @app.route("/dashboard")
 def dashboard():
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
     try:
         # Таблички
@@ -174,10 +178,9 @@ def dashboard():
 
 @app.route("/tasks")
 def tasks():
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
-    if isAdministrator():
-        return render_template('404.html')
+    # allow admins to view tasks as well
     return render_template('tasks.html',
                            tasklist=DBoperations.getTasks())
 
@@ -185,7 +188,7 @@ def tasks():
 @app.route("/account")
 def account():
     DBoperations.checkContestExpiration()
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
     # Фото профиля
     profile_pic_path = f"static/profile_pics/pic_{session['id']}"
@@ -251,7 +254,7 @@ def allowed_file(filename, allowed_extensions):
 
 @app.route('/upload_avatar', methods=['POST'])
 def upload_avatar():
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
     print("func")
     try:
@@ -290,10 +293,8 @@ def upload_avatar():
 
 @app.route('/task/<taskid>', methods=['GET'])
 def task(taskid):
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
-    if isAdministrator():
-        return render_template('404.html')
     taskInfo = DBoperations.getTask(taskid)
     task_name = taskInfo['name']
     subject = taskInfo['subject']
@@ -317,10 +318,8 @@ def task(taskid):
 
 @app.route('/update_task/<taskid>', methods=['GET', 'POST'])
 def update_task(taskid):
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
-    if isAdministrator():
-        return render_template('404.html')
     task_name = request.form.get('task_name')
     subject = request.form.get('subject')
     complexity = request.form.get('complexity')
@@ -340,7 +339,7 @@ def update_task(taskid):
 
 @app.route('/new_task', methods=['GET'])
 def new_task():
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
     if isAdministrator():
         return render_template('404.html')
@@ -356,10 +355,8 @@ def new_task():
 
 @app.route('/post_new_task', methods=['POST', 'GET'])
 def post_new_task():
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
-    if isAdministrator():
-        return render_template('404.html')
     task_name = request.form.get('task_name')
     subject = request.form.get('subject')
     complexity = request.form.get('complexity')
@@ -388,7 +385,7 @@ def upload_task():
     return redirect(url_for('new_task', subject=subjects[subject], description=res['condition']['text'], answer=res['answer']))
 @app.route('/choose_task')
 def choose_task():
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
     user_id = session['id']
     tasklist = DBoperations.getTasks()
@@ -417,7 +414,7 @@ def choose_task():
 
 @app.route('/solve_task/<taskid>', methods=['GET', 'POST'])
 def solve_task(taskid):
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
     msg = ""
     DBoperations.startSolving(session['id'], taskid)
@@ -502,10 +499,8 @@ def download(taskid):
 
 @app.route('/import_task', methods=['POST'])
 def import_task():
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
-    if isAdministrator():
-        return render_template('404.html')
     print("func")
     try:
         if 'file' not in request.files:
@@ -535,8 +530,7 @@ def import_task():
 @app.route('/contests')
 def contest_list():
     DBoperations.checkContestExpiration()
-    if isLoggedin():
-        return redirect(url_for('login'))
+    # Public page: list contests without requiring login
     contests = DBoperations.listContests()
     unexpired_contests = DBoperations.listUnexpiredContests()
     if not contests:
@@ -561,7 +555,7 @@ def applyToContest(contid):
 # Функция для генерации страницы с созданием соревнования
 @app.route('/create_contest')
 def create_contest():
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
     subjects = DBoperations.listSubjects()
     return render_template('create_contest.html', subjects=subjects)
@@ -570,7 +564,7 @@ def create_contest():
 # Функция для обработки создания соревнования
 @app.route("/post_new_contest", methods=['POST'])
 def post_new_contest():
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
     try:
         data = {
@@ -605,7 +599,7 @@ def post_new_contest():
 
 @app.route("/contest/<contid>", methods=['GET'])
 def contest(contid):
-    if isLoggedin():
+    if not isLoggedin():
         return url_for('login')
     userid = session['id']
     if not DBoperations.isContestExpired(contid):
@@ -639,7 +633,7 @@ def contest(contid):
 # Решение таски в соревновании
 @app.route("/contest/<contid>/task/<taskid>", methods=['GET', 'POST'])
 def solveContestTask(contid, taskid):
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
     if not DBoperations.isContestExpired(contid) and DBoperations.isContestStarted(contid):
         msg = ""
@@ -662,9 +656,9 @@ def solveContestTask(contid, taskid):
                 solvationStatus = "Задача еще не решена"
             else:
                 if res:
-                    solvationStatus = f"<div class='solvedRight'>Задание решено верно</div>"
+                    solvationStatus = "<div class='solvedRight'>Задание решено верно</div>"
                 else:
-                    solvationStatus = f"<div class='solvedBad'>Задание решено неверно</div>"
+                    solvationStatus = "<div class='solvedBad'>Задание решено неверно</div>"
         except Exception as e:
             print(e)
             flash('Произошла ошибка при обработке решения', 'error')
@@ -695,7 +689,7 @@ def solveContestTask(contid, taskid):
                     DBoperations.setSolvation(taskid, session['id'], True, contid)
                 else:
                     DBoperations.setSolvation(taskid, session['id'], False, contid)
-                    msg = f"Задание решено неверно!"
+                    msg = "Задание решено неверно!"
             DBoperations.recalculateUsersScore(contid)
             return render_template('solve_contest_task.html',
                                    taskid=taskid,
@@ -716,11 +710,113 @@ def solveContestTask(contid, taskid):
 
 @app.route('/admin-panel')
 def admin_panel():
-    if isLoggedin():
+    if not isLoggedin():
         return redirect(url_for('login'))
-    if isAdministrator:
+    if not isAdministrator():
+        return render_template('404.html')
+    users = DBoperations.getUsers()
+    return render_template('admin_panel.html', users=users)
+
+
+@app.route('/admin/add-user', methods=['POST'])
+def admin_add_user():
+    if not isLoggedin():
         return redirect(url_for('login'))
-    return render_template('admin_panel.html')
+    if not isAdministrator():
+        return render_template('404.html')
+    username = request.form.get('username')
+    email = request.form.get('email')
+    password = request.form.get('password')
+    is_admin_flag = request.form.get('is_admin')
+    if not username or not email or not password:
+        flash('Заполните все поля', 'error')
+        return redirect(url_for('admin_panel'))
+    password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+    DBoperations.addNewUser(username, email, password_hash)
+    # Optionally set admin flag
+    if is_admin_flag:
+        # find new user id
+        user = DBoperations.checkUserName(username)
+        if user:
+            DBoperations.addAdmin(user[0])
+    flash('Пользователь добавлен', 'success')
+    return redirect(url_for('admin_panel'))
+
+
+@app.route('/admin/delete-user', methods=['POST'])
+def admin_delete_user():
+    if not isLoggedin():
+        return redirect(url_for('login'))
+    if not isAdministrator():
+        return render_template('404.html')
+    userid = request.form.get('userid')
+    if userid:
+        DBoperations.deleteAccount(int(userid))
+        flash('Пользователь удалён', 'success')
+    return redirect(url_for('admin_panel'))
+
+
+@app.route('/admin/change-nickname', methods=['POST'])
+def admin_change_nickname():
+    if not isLoggedin():
+        return redirect(url_for('login'))
+    if not isAdministrator():
+        return render_template('404.html')
+    userid = request.form.get('userid')
+    new_nick = request.form.get('new_nick')
+    if userid and new_nick:
+        DBoperations.updateNickname(int(userid), new_nick)
+        flash('Никнейм обновлён', 'success')
+    return redirect(url_for('admin_panel'))
+
+
+@app.route('/admin/change-password', methods=['POST'])
+def admin_change_password():
+    if not isLoggedin():
+        return redirect(url_for('login'))
+    if not isAdministrator():
+        return render_template('404.html')
+    userid = request.form.get('userid')
+    new_password = request.form.get('new_password')
+    if userid and new_password:
+        password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt())
+        DBoperations.adminChangePassword(int(userid), password_hash)
+        flash('Пароль обновлён', 'success')
+    return redirect(url_for('admin_panel'))
+
+
+@app.route('/admin/upload-avatar', methods=['POST'])
+def admin_upload_avatar():
+    if not isLoggedin():
+        return redirect(url_for('login'))
+    if not isAdministrator():
+        return render_template('404.html')
+    try:
+        userid = request.form.get('userid')
+        if not userid:
+            flash('Нет указанного пользователя', 'error')
+            return redirect(url_for('admin_panel'))
+        userid = int(userid)
+        if 'file' not in request.files:
+            flash('Не могу прочитать файл')
+            return redirect(url_for('admin_panel'))
+        file = request.files['file']
+        if file.filename == '':
+            flash('Нет выбранного файла')
+            return redirect(url_for('admin_panel'))
+        if file and allowed_file(file.filename, ALLOWED_EXTENSIONS_FOR_PICS):
+            filename = f"pic_{userid}"
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            if not os.path.exists(app.config['UPLOAD_FOLDER']):
+                os.makedirs(app.config['UPLOAD_FOLDER'])
+            file.save(filepath)
+            flash('Аватар загружен', 'success')
+        else:
+            flash('Недопустимый формат файла')
+    except Exception as e:
+        print(e)
+        flash('Ошибка при загрузке')
+    return redirect(url_for('admin_panel'))
 
 
 @app.route('/leaderboard')
@@ -730,6 +826,55 @@ def leaderboard():
     return render_template('leaderboard.html', players=players)
 
 
+@app.route('/teams')
+def teams():
+    if not isLoggedin():
+        return redirect(url_for('login'))
+    teams = DBoperations.get_teams()
+    return render_template('teams.html', teams=teams)
+
+
+@app.route('/teams/create', methods=['POST'])
+def create_team():
+    if not isLoggedin():
+        return redirect(url_for('login'))
+    team_name = request.form.get('team_name')
+    if team_name:
+        DBoperations.create_team(team_name, session.get('id'))
+        flash('Команда создана', 'success')
+    return redirect(url_for('teams'))
+
+
+@app.route('/teams/delete/<int:teamid>', methods=['POST'])
+def delete_team(teamid):
+    if not isLoggedin():
+        return redirect(url_for('login'))
+    DBoperations.delete_team(teamid)
+    flash('Команда удалена', 'success')
+    return redirect(url_for('teams'))
+
+
+@app.route('/teams/join/<int:teamid>', methods=['POST'])
+def join_team(teamid):
+    if not isLoggedin():
+        return redirect(url_for('login'))
+    success = DBoperations.join_team(session['id'], teamid)
+    if success:
+        flash('Вы присоединились к команде', 'success')
+    else:
+        flash('Команда не найдена', 'error')
+    return redirect(url_for('teams'))
+
+
+@app.route('/teams/leave', methods=['POST'])
+def leave_team():
+    if not isLoggedin():
+        return redirect(url_for('login'))
+    DBoperations.leave_team(session['id'])
+    flash('Вы вышли из команды', 'success')
+    return redirect(url_for('teams'))
+
+
 if __name__ == '__main__':
-    # app.run(debug=True, host="0.0.0.0", port=5000)
-    socketio.run(app, debug=True, host="0.0.0.0", port=5000, allow_unsafe_werkzeug=True)
+    # Run SocketIO with threading mode and without reloader to ensure clean shutdown on Ctrl+C
+    socketio.run(app, debug=False, host="0.0.0.0", port=5000, allow_unsafe_werkzeug=True, use_reloader=False)

@@ -1,15 +1,17 @@
 import psycopg2
 import json
 from psycopg2.extras import DictCursor
+import os
 from datetime import datetime
+from dotenv import load_dotenv
 import bcrypt
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-pg_password = os.getenv('PG_PASSWORD')
+password_from_db = os.getenv('password_from_db')
 
-conn = psycopg2.connect(host="localhost", user="postgres", password=pg_password, port=5432, dbname="players")
+conn = psycopg2.connect(host="localhost", user="postgres", password=password_from_db, port=5432, dbname="predprof")
 if conn:
     print("Connected")
 
@@ -17,13 +19,13 @@ cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
 # cursor.execute("SELECT id FROM tasks WHERE subject LIKE %s AND theme LIKE %s")
 # И по умолчанию заменять на звездочку
-"""  Таблица для хранения соревнований в базе данных (Предмет, Уровень сложности, Количество заданий, Возможность повторного ответа при ошибке, Время начала, Продолжительность, 
+"""  Таблица для хранения соревнований в базе данных (Предмет, Уровень сложности, Количество заданий, Возможность повторного ответа при ошибке, Время начала, Продолжительность,
 Участник1 (создатель), Участник2 (принявший вызов), Результат пользователя 1, Результат пользователя 2, Победитель, Статус поединка, Подпись участника1,Подпись участника2)"""
 
 
 def init_db():
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS registered_players 
+    CREATE TABLE IF NOT EXISTS registered_players
 (
     player_id SERIAL PRIMARY KEY NOT NULL,
     player_name VARCHAR(32),
@@ -57,10 +59,10 @@ def init_db():
     user_updated INT,
     task TEXT,
     CONSTRAINT fk_user_created
-        FOREIGN KEY (user_created) 
+        FOREIGN KEY (user_created)
         REFERENCES registered_players (player_id),
     CONSTRAINT fk_user_updated
-        FOREIGN KEY (user_updated) 
+        FOREIGN KEY (user_updated)
         REFERENCES registered_players (player_id)
     );
     """)
@@ -72,10 +74,10 @@ def init_db():
     is_right BOOLEAN,
     contest_id INT DEFAULT NULL,
     CONSTRAINT fk_user_solved
-        FOREIGN KEY (user_id) 
+        FOREIGN KEY (user_id)
         REFERENCES registered_players (player_id),
     CONSTRAINT fk_task_solved
-        FOREIGN KEY (task_id) 
+        FOREIGN KEY (task_id)
         REFERENCES tasks (id)
     )
     """)
@@ -96,12 +98,12 @@ def init_db():
         u1_accepted BOOLEAN DEFAULT NULL,
         u2_accepted BOOLEAN DEFAULT NULL,
         CONSTRAINT fk_p1
-            FOREIGN KEY (user_1) 
+            FOREIGN KEY (user_1)
             REFERENCES registered_players (player_id),
         CONSTRAINT fk_p2
-            FOREIGN KEY (user_2) 
+            FOREIGN KEY (user_2)
             REFERENCES registered_players (player_id)
-        
+
         )
         """)
     cursor.execute("""
@@ -114,13 +116,13 @@ def init_db():
         contest_id INT DEFAULT NULL,
         PRIMARY KEY (user_id, task_id),
         CONSTRAINT fk_user_solved
-            FOREIGN KEY (user_id) 
+            FOREIGN KEY (user_id)
             REFERENCES registered_players (player_id),
         CONSTRAINT fk_task_solved
-            FOREIGN KEY (task_id) 
+            FOREIGN KEY (task_id)
             REFERENCES tasks (id),
         CONSTRAINT fk_contest_id
-            FOREIGN KEY (contest_id) 
+            FOREIGN KEY (contest_id)
             REFERENCES contests (id)
         )
     """)
@@ -133,6 +135,28 @@ def init_db():
             REFERENCES contests (id)
     )
     """)
+    # Таблица команд
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS teams(
+        team_id SERIAL PRIMARY KEY,
+        team_name VARCHAR(64),
+        team_score INT DEFAULT 1000,
+        contests TEXT DEFAULT ''
+    )
+    """)
+
+    # Добавляем колонку team_id в registered_players, если её нет, и ставим внешний ключ на teams
+    cursor.execute("ALTER TABLE registered_players ADD COLUMN IF NOT EXISTS team_id INT DEFAULT NULL")
+    cursor.execute("""
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname = 'registered_players_team_id_fkey'
+        ) THEN
+            ALTER TABLE registered_players
+            ADD CONSTRAINT registered_players_team_id_fkey FOREIGN KEY (team_id) REFERENCES teams(team_id);
+        END IF;
+    END$$;
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS teams(
         id SERIAL PRIMARY KEY,
@@ -251,22 +275,22 @@ def deleteAccount(userid):
 
         # Обновляем контесты, где пользователь является user_2 (ставим user_2 в NULL)
         cursor.execute("""
-            UPDATE contests 
-            SET user_2 = NULL, 
+            UPDATE contests
+            SET user_2 = NULL,
                 u2_result = NULL,
                 u2_accepted = NULL,
-                status = CASE 
-                    WHEN status = 'active' AND user_1 IS NOT NULL THEN 'waiting' 
-                    ELSE status 
+                status = CASE
+                    WHEN status = 'active' AND user_1 IS NOT NULL THEN 'waiting'
+                    ELSE status
                 END
             WHERE user_2 = %s
         """, (userid,))
 
         # Обновляем задачи, где пользователь был создателем или обновителем
         cursor.execute("""
-            UPDATE tasks 
-            SET user_created = NULL, 
-                user_updated = NULL 
+            UPDATE tasks
+            SET user_created = NULL,
+                user_updated = NULL
             WHERE user_created = %s OR user_updated = %s
         """, (userid, userid))
 
@@ -281,8 +305,8 @@ def deleteAccount(userid):
 
         # Обновляем контесты, где пользователь является победителем
         cursor.execute("""
-            UPDATE contests 
-            SET winner = NULL 
+            UPDATE contests
+            SET winner = NULL
             WHERE winner = %s
         """, (userid,))
 
@@ -339,7 +363,8 @@ def isAdmin(player_id: int):
 
 
 def addAdmin(player_id):
-    cursor.execute("INSERT INTO admins(user_id) VALUES (%s)", (player_id,))
+    # Older schema used a separate `admins` table; now we use the `is_admin` flag
+    cursor.execute("UPDATE registered_players SET is_admin = TRUE WHERE player_id = %s", (player_id,))
     conn.commit()
 
 
@@ -383,12 +408,17 @@ def getSolvation(taskid):
 
 
 def setSolvation(taskid, userid, isright, contid=None):
-    cursor.execute(
-        "INSERT INTO solved_tasks(user_id, task_id, is_right, contest_id) VALUES (%s, %s, %s, %s)",
-        (userid, taskid, isright, contid)
-    )
+    if contid is None:
+        cursor.execute(
+            "INSERT INTO solved_tasks(user_id, task_id, is_right) VALUES (%s, %s, %s)",
+            (userid, taskid, isright)
+        )
+    else:
+        cursor.execute(
+            "INSERT INTO solved_tasks(user_id, task_id, is_right, contest_id) VALUES (%s, %s, %s, %s)",
+            (userid, taskid, isright, contid)
+        )
 
-    if contid is not None:
         cursor.execute(
             "UPDATE contests SET u1_result = u1_result + %s WHERE id = %s AND user_1 = %s",
             (int(isright), contid, userid)
@@ -522,6 +552,65 @@ def getLeaderboard():
     return cursor.fetchall()
 
 
+def getUsers():
+    """Получить список всех пользователей для панели администратора"""
+    cursor.execute("SELECT player_id, player_name, email, is_admin, team_id FROM registered_players ORDER BY player_id")
+    return cursor.fetchall()
+
+
+def updateNickname(userid, new_name):
+    cursor.execute("UPDATE registered_players SET player_name = %s WHERE player_id = %s", (new_name, userid))
+    conn.commit()
+
+
+def adminChangePassword(userid, new_password_hash):
+    # new_password_hash expected as bytes from bcrypt.hashpw
+    cursor.execute("UPDATE registered_players SET player_password = %s WHERE player_id = %s",
+                   (new_password_hash.decode('utf-8'), userid))
+    conn.commit()
+
+
+# ---- Команды ----
+def create_team(team_name, creator_userid=None):
+    cursor.execute("INSERT INTO teams(team_name, team_score) VALUES(%s, %s) RETURNING team_id", (team_name, 1000))
+    team_id = cursor.fetchone()[0]
+    if creator_userid:
+        cursor.execute("UPDATE registered_players SET team_id = %s WHERE player_id = %s", (team_id, creator_userid))
+    conn.commit()
+    return team_id
+
+
+def delete_team(team_id):
+    # Сначала отвязываем пользователей
+    cursor.execute("UPDATE registered_players SET team_id = NULL WHERE team_id = %s", (team_id,))
+    cursor.execute("DELETE FROM teams WHERE team_id = %s", (team_id,))
+    conn.commit()
+
+
+def join_team(userid, team_id):
+    cursor.execute("SELECT team_id FROM teams WHERE team_id = %s", (team_id,))
+    if not cursor.fetchone():
+        return False
+    cursor.execute("UPDATE registered_players SET team_id = %s WHERE player_id = %s", (team_id, userid))
+    conn.commit()
+    return True
+
+
+def leave_team(userid):
+    cursor.execute("UPDATE registered_players SET team_id = NULL WHERE player_id = %s", (userid,))
+    conn.commit()
+
+
+def get_teams():
+    cursor.execute("SELECT team_id, team_name, team_score, contests FROM teams ORDER BY team_id")
+    return cursor.fetchall()
+
+
+def get_team(team_id):
+    cursor.execute("SELECT team_id, team_name, team_score, contests FROM teams WHERE team_id = %s", (team_id,))
+    return cursor.fetchone()
+
+
 def createNewContest(data: dict, user1=None):
     try:
         # Валидация обязательных полей
@@ -572,9 +661,9 @@ def createNewContest(data: dict, user1=None):
         }
 
         cursor.execute(
-            """INSERT INTO contests 
-            (subject, complexity, started_at, ending_at, 
-             user_1, user_2, u1_accepted, status) 
+            """INSERT INTO contests
+            (subject, complexity, started_at, ending_at,
+             user_1, user_2, u1_accepted, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id""",
             (contest_data['subject'],
@@ -671,6 +760,13 @@ def checkContestExpiration():
     status_ongoing = 'Идет'
     status_ended = 'Окончено'
     query = """
+                UPDATE contests
+                SET status = CASE
+                    WHEN ending_at <= %s THEN 'Окончено'
+                    WHEN started_at <= %s THEN 'Идет'
+                    ELSE 'Еще не началось'
+                END
+                WHERE status != 'Окончено' OR ending_at > %s
                 UPDATE contests 
                 SET status = %s
                 WHERE %s < started_at AND status != %s
@@ -788,6 +884,8 @@ def get_expected(a_rating, b_rating):
 
 
 def get_k(rating):
-    if rating >= 2400: return 10
-    if rating <= 1500: return 40
+    if rating >= 2400:
+        return 10
+    if rating <= 1500:
+        return 40
     return 20
