@@ -731,6 +731,16 @@ def recalculateUsersScore(contid):
     if not contest or contest[1] is None:
         return "Недостаточно данных (второй игрок не найден)"
     u1_id, u2_id, u1_score, u2_score = contest
+    
+    # Explicitly cast to int to avoid TypeError if DB returns strings
+    try:
+        if u1_score is not None:
+            u1_score = int(u1_score)
+        if u2_score is not None:
+            u2_score = int(u2_score)
+    except ValueError:
+        print(f"Error converting scores to int: {u1_score}, {u2_score}")
+        return "Ошибка данных в результатах соревнования"
     cursor.execute("SELECT player_score FROM registered_players WHERE player_id = %s", (u1_id,))
     r1 = cursor.fetchone()[0]
     cursor.execute("SELECT player_score FROM registered_players WHERE player_id = %s", (u2_id,))

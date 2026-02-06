@@ -168,6 +168,7 @@ def dashboard():
                                successRate=successRate
                                )
     except KeyError:
+        flash('Сессия истекла или некорректна. Пожалуйста, войдите снова.', 'error')
         return redirect(url_for('login'))
 
 
@@ -208,7 +209,7 @@ def delete_account():
         DBoperations.deleteAccount(session['id'])
         return redirect(url_for('logout'))
     else:
-        flash('Введен некорректный никнейм или пароль!')
+        flash('Введен некорректный никнейм или пароль!', 'error')
         return redirect(url_for('account'))
 
 @app.route('/change-password', methods=["POST"])
@@ -223,7 +224,7 @@ def change_password():
         flash("Пароль успешно изменен!")
         return redirect(url_for('account'))
     else:
-        flash("Введен неверный пароль!")
+        flash("Введен неверный пароль!", 'error')
         return redirect(url_for('account'))
 
 
@@ -257,12 +258,12 @@ def upload_avatar():
         user_id = session['id']
 
         if 'file' not in request.files:
-            flash('Не могу прочитать файл')
+            flash('Не могу прочитать файл', 'error')
             return redirect(url_for('dashboard'))
 
         file = request.files['file']
         if file.filename == '':
-            flash('Нет выбранного файла')
+            flash('Нет выбранного файла', 'error')
             return redirect(url_for('dashboard'))
 
         if file and allowed_file(file.filename, ALLOWED_EXTENSIONS_FOR_PICS):
@@ -278,12 +279,12 @@ def upload_avatar():
 
             return redirect(url_for('account'))
         else:
-            flash('Недопустимый формат файла. Разрешены: png, jpg, jpeg')
+            flash('Недопустимый формат файла. Разрешены: png, jpg, jpeg', 'error')
             return redirect(url_for('account'))
 
     except Exception as e:
         print(f"Ошибка загрузки аватара: {e}")
-        flash('Произошла ошибка при загрузке файла')
+        flash('Произошла ошибка при загрузке файла', 'error')
         return redirect(url_for('dashboard'))
 
 
@@ -508,12 +509,12 @@ def import_task():
     print("func")
     try:
         if 'file' not in request.files:
-            flash('Не могу прочитать файл')
+            flash('Не могу прочитать файл', 'error')
             return redirect(url_for('tasks'))
 
         file = request.files['file']
         if file.filename == '':
-            flash('Нет выбранного файла')
+            flash('Нет выбранного файла', 'error')
             return redirect(url_for('tasks'))
 
         if file and allowed_file(file.filename, {'json'}):
@@ -523,11 +524,11 @@ def import_task():
 
             return redirect(url_for('tasks'))
         else:
-            flash('Недопустимый формат файла. Разрешены: json')
+            flash('Недопустимый формат файла. Разрешены: json', 'error')
             return redirect(url_for('tasks'))
     except Exception as e:
         print(f"{e} - Error!")
-        flash('Произошла неизвестная ошибка')
+        flash('Произошла неизвестная ошибка', 'error')
         return redirect(url_for('tasks'))
 
 
@@ -613,7 +614,7 @@ def contest(contid):
             opponent_id = DBoperations.getEnemy(contid, userid)
             tasks_ids = DBoperations.takeTasksById(contid)
             if not tasks_ids:
-                flash("Ошибка при загрузке заданий!")
+                flash("Ошибка при загрузке заданий!", 'error')
                 print(tasks_ids)
                 abort(500)
             tasklist = list(map(int, tasks_ids[0].split(',')))
@@ -628,10 +629,10 @@ def contest(contid):
                                    player_solved=player_solved,
                                    opponent_solved=opponent_solved)
         except ValueError:
-            flash('Вы не можете смотреть соревнование, пока нет второго игрока!')
+            flash('Вы не можете смотреть соревнование, пока нет второго игрока!', 'error')
             return redirect(url_for('account'))
     else:
-        flash("Это соревнование окончено!")
+        flash("Это соревнование окончено!", 'error')
         return redirect(url_for('account'))
 
 
@@ -666,6 +667,7 @@ def solveContestTask(contid, taskid):
                     solvationStatus = f"<div class='solvedBad'>Задание решено неверно</div>"
         except Exception as e:
             print(e)
+            flash('Произошла ошибка при обработке решения', 'error')
             pass
         if request.method == "GET":
             DBoperations.recalculateUsersScore(contid)
@@ -708,7 +710,7 @@ def solveContestTask(contid, taskid):
                                    contid=contid
                                    )
         else:
-            flash("Это соревнование еще не началось или уже окончено!")
+            flash("Это соревнование еще не началось или уже окончено!", 'error')
             return redirect(url_for('account'))
 
 
