@@ -30,8 +30,7 @@ def init_db():
     player_score INT DEFAULT 1000,
     player_password VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
-    is_admin BOOLEAN DEFAULT FALSE,
-    team_id INT DEFAULT NULL
+    is_admin BOOLEAN DEFAULT FALSE
 );
     """)
     cursor.execute("""
@@ -41,7 +40,10 @@ def init_db():
     player_id INT NOT NULL,
     date DATE NOT NULL,
     player_score INT NOT NULL,
-    UNIQUE(player_id, date)
+    UNIQUE(player_id, date),
+    CONSTRAINT fk_player_id
+        FOREIGN KEY (player_id) 
+        REFERENCES registered_players (player_id)
 );
     """)
     cursor.execute("""
@@ -133,28 +135,28 @@ def init_db():
             REFERENCES contests (id)
     )
     """)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS teams(
-        id SERIAL PRIMARY KEY,
-        team_name TEXT NOT NULL,
-        team_score INT DEFAULT 1000,
-        team_leader INT NOT NULL,
-        CONSTRAINT fk_team_leader
-            FOREIGN KEY (team_leader)
-            REFERENCES registered_players (player_id),
-        UNIQUE(team_name)
-    )""")
-    cursor.execute("""
-    DO $$
-    BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_player_team') THEN
-            ALTER TABLE registered_players 
-            ADD CONSTRAINT fk_player_team 
-            FOREIGN KEY (team_id) REFERENCES teams (id);
-        END IF;
-    END;
-    $$;
-    """)
+    # cursor.execute("""
+    # CREATE TABLE IF NOT EXISTS teams(
+    #     id SERIAL PRIMARY KEY,
+    #     team_name TEXT NOT NULL,
+    #     team_score INT DEFAULT 1000,
+    #     team_leader INT NOT NULL,
+    #     CONSTRAINT fk_team_leader
+    #         FOREIGN KEY (team_leader)
+    #         REFERENCES registered_players (player_id),
+    #     UNIQUE(team_name)
+    # )""")
+    # cursor.execute("""
+    # DO $$
+    # BEGIN
+    #     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_player_team') THEN
+    #         ALTER TABLE registered_players
+    #         ADD CONSTRAINT fk_player_team
+    #         FOREIGN KEY (team_id) REFERENCES teams (id);
+    #     END IF;
+    # END;
+    # $$;
+    # """)
     conn.commit()
     cursor.execute("SELECT * FROM registered_players")
     if not cursor.fetchone():
